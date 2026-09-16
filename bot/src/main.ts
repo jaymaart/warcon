@@ -4,7 +4,16 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { newEntries, parseModeration, type AuditCursor } from './audit';
 import { factionColor } from './colors';
-import { Discord, DiscordError, handleInteraction, verifyInteraction, type Embed } from './discord';
+import {
+	applicationIdFromToken,
+	Discord,
+	DiscordError,
+	handleInteraction,
+	registerCommands,
+	verifyInteraction,
+	type Embed
+} from './discord';
+import { COMMANDS, runCommand, type StatsSource } from './link';
 import { loadConfig } from './env';
 import { matchEndEmbed, moderationEmbed } from './events';
 import { GameClient, type GameServer, type Player, type Status } from './game';
@@ -142,6 +151,35 @@ function leaderboardFor(board: Board, period: Period, refreshSeconds: number | n
 
 const render = (board: Board, period: Period): Embed => leaderboardFor(board, period, null);
 
+const statsSource: StatsSource = {
+	link: (id) => store.link(id),
+	setLink: (id, steamId) => store.setLink(id, steamId),
+	clearLink: (id) => store.clearLink(id),
+	playerName: (steamId) => store.player(steamId)?.name ?? null,
+	byName: (name) => store.playersNamed(name),
+	stats: (steamId, since) => store.playerStats(steamId, since)
+};
+
+const handlers = {
+	board: render,
+	command: (name: string, options: Record<string, string>, id: string): Embed =>
+		runCommand(name, options, id, statsSource, new Date())
+};
+
+async function publishCommands(): Promise<void> {
+	const applicationId = cfg.applicationId ?? applicationIdFromToken(cfg.token);
+	if (!applicationId) {
+		log('slash commands not registered: set DISCORD_APPLICATION_ID');
+		return;
+	}
+	try {
+		const n = await registerCommands(cfg.token, applicationId, COMMANDS, cfg.apiBase);
+		log(`slash commands registered (${n})`);
+	} catch (err) {
+		log(`slash commands: ${err instanceof Error ? err.message : String(err)}`);
+	}
+}
+
 /** Creates or edits the standing message for one board, keyed in state by `<board>:message`. */
 async function ensureBoardMessage(board: Board): Promise<void> {
 	const key = board === 'kills' ? 'lb:message' : 'cash:message';
@@ -263,7 +301,7 @@ const server = Bun.serve({
 				log('interaction rejected: bad json');
 				return new Response('bad json', { status: 400 });
 			}
-			const answer = handleInteraction(payload, render);
+			const answer = handleInteraction(payload, handlers);
 			log(
 				`interaction ${summarize(payload)}: ${answer ? `answered type ${answer.type}` : 'unknown'}`
 			);
@@ -277,6 +315,7 @@ log(`listening on :${server.port}; watching ${watched.map((w) => w.server.name).
 for (const w of watched) void loop(() => poll(w), cfg.pollSeconds * 1000, w.server.name);
 void loop(refreshLeaderboard, cfg.leaderboardRefreshSeconds * 1000, 'leaderboard');
 void loop(refreshDiscordCounts, 600_000, 'discord counts');
+void publishCommands();
 
 const shutdown = (): void => {
 	log('shutting down');

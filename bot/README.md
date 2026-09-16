@@ -27,12 +27,25 @@ polls `GET /api/site` every 30 seconds; that document is public and read-only. P
 domain on the Railway service to host it at your own address. Replace `site/assets/*.png` to
 change the artwork.
 
+## Slash commands
+
+- `/link player:<SteamID64 | steamcommunity.com/profiles/… | exact in-game name>` ties the
+  caller's Discord account to a player. Custom `/id/` profile URLs are not resolvable without a
+  Steam API key, so the bot asks for the ID or name instead.
+- `/stats` replies privately with the linked player's kills, deaths, K/D, cash earned and place by
+  kills for today, this week, this month and all time.
+- `/unlink` removes the link.
+
+Linked players show as a mention next to their name on both leaderboards (no ping). Commands are
+registered globally on startup; the application id is read from the token, or set
+`DISCORD_APPLICATION_ID`. The bot invite needs the `applications.commands` scope as well as `bot`.
+
 ## Discord setup
 
 1. [Developer Portal](https://discord.com/developers/applications) → New Application.
 2. **Bot** tab → Reset Token → copy it (`DISCORD_BOT_TOKEN`).
 3. **General Information** → copy the Public Key (`DISCORD_PUBLIC_KEY`).
-4. **OAuth2 → URL Generator**: scope `bot`, permissions **Send Messages** and **Embed Links**
+4. **OAuth2 → URL Generator**: scopes `bot` and `applications.commands`, permissions **Send Messages** and **Embed Links**
    (`permissions=18432`). Open the URL and add the bot to your server.
 5. In Discord, enable Developer Mode (Settings → Advanced), right-click the channel → Copy Channel
    ID (`DISCORD_EVENTS_CHANNEL_ID`; `DISCORD_LEADERBOARD_CHANNEL_ID` if the leaderboard should

@@ -30,6 +30,11 @@ export class Store {
 				key TEXT PRIMARY KEY,
 				value TEXT NOT NULL
 			);
+			CREATE TABLE IF NOT EXISTS links (
+				discord_id TEXT PRIMARY KEY,
+				steam_id TEXT NOT NULL,
+				linked_at TEXT NOT NULL
+			);
 			CREATE TABLE IF NOT EXISTS uptime (
 				day TEXT NOT NULL,
 				server TEXT NOT NULL,
@@ -78,7 +83,8 @@ export class Store {
 	cashEarned(since: Date | null, limit: number): CashRow[] {
 		return this.db
 			.query<CashRow, [string | null, string | null, number]>(
-				`SELECT s.steam_id AS steamId, COALESCE(p.name, s.steam_id) AS name, SUM(s.cash) AS cash
+				`SELECT s.steam_id AS steamId, COALESCE(p.name, s.steam_id) AS name, SUM(s.cash) AS cash,
+				        (SELECT l.discord_id FROM links l WHERE l.steam_id = s.steam_id LIMIT 1) AS discordId
 				 FROM stats s LEFT JOIN players p ON p.steam_id = s.steam_id
 				 WHERE ?1 IS NULL OR s.at >= ?2
 				 GROUP BY s.steam_id
@@ -105,7 +111,8 @@ export class Store {
 		return this.db
 			.query<Row, [string | null, string | null, number]>(
 				`SELECT s.steam_id AS steamId, COALESCE(p.name, s.steam_id) AS name,
-				        SUM(s.kills) AS kills, SUM(s.deaths) AS deaths
+				        SUM(s.kills) AS kills, SUM(s.deaths) AS deaths,
+				        (SELECT l.discord_id FROM links l WHERE l.steam_id = s.steam_id LIMIT 1) AS discordId
 				 FROM stats s LEFT JOIN players p ON p.steam_id = s.steam_id
 				 WHERE ?1 IS NULL OR s.at >= ?2
 				 GROUP BY s.steam_id
@@ -134,6 +141,66 @@ export class Store {
 			)
 			.get(sinceDay);
 		return row && row.total > 0 ? row.ok / row.total : null;
+	}
+
+	link(discordId: string): string | null {
+		const row = this.db
+			.query<{ steam_id: string }, [string]>('SELECT steam_id FROM links WHERE discord_id = ?')
+			.get(discordId);
+		return row ? row.steam_id : null;
+	}
+
+	setLink(discordId: string, steamId: string, at = new Date()): void {
+		this.db
+			.query<void, [string, string, string]>(
+				`INSERT INTO links (discord_id, steam_id, linked_at) VALUES (?, ?, ?)
+				 ON CONFLICT (discord_id) DO UPDATE SET steam_id = excluded.steam_id, linked_at = excluded.linked_at`
+			)
+			.run(discordId, steamId, at.toISOString());
+	}
+
+	/** True when a link existed. */
+	clearLink(discordId: string): boolean {
+		return (
+			this.db.query<void, [string]>('DELETE FROM links WHERE discord_id = ?').run(discordId)
+				.changes > 0
+		);
+	}
+
+	/** Players whose stored name matches, case-insensitively. */
+	playersNamed(name: string): { steamId: string; name: string }[] {
+		return this.db
+			.query<{ steamId: string; name: string }, [string]>(
+				'SELECT steam_id AS steamId, name FROM players WHERE lower(name) = lower(?) ORDER BY last_seen DESC'
+			)
+			.all(name);
+	}
+
+	/** One player's totals since `since` and their place by kills among players with kills. */
+	playerStats(
+		steamId: string,
+		since: Date | null
+	): { kills: number; deaths: number; cash: number; rank: number | null } {
+		const iso = since ? since.toISOString() : null;
+		const totals = this.db
+			.query<
+				{ kills: number; deaths: number; cash: number },
+				[string, string | null, string | null]
+			>(
+				`SELECT COALESCE(SUM(kills), 0) AS kills, COALESCE(SUM(deaths), 0) AS deaths,
+				        COALESCE(SUM(cash), 0) AS cash
+				 FROM stats WHERE steam_id = ?1 AND (?2 IS NULL OR at >= ?3)`
+			)
+			.get(steamId, iso, iso) ?? { kills: 0, deaths: 0, cash: 0 };
+		if (totals.kills === 0) return { ...totals, rank: null };
+		const above = this.db
+			.query<{ n: number }, [string | null, string | null, number]>(
+				`SELECT COUNT(*) AS n FROM (
+				   SELECT steam_id FROM stats WHERE ?1 IS NULL OR at >= ?2
+				   GROUP BY steam_id HAVING SUM(kills) > ?3)`
+			)
+			.get(iso, iso, totals.kills);
+		return { ...totals, rank: (above?.n ?? 0) + 1 };
 	}
 
 	player(steamId: string): { name: string; faction: string | null } | null {

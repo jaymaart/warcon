@@ -16,7 +16,16 @@ export interface Row {
 	name: string;
 	kills: number;
 	deaths: number;
+	/** the Discord account linked with /link, shown as a mention; null when none */
+	discordId: string | null;
 }
+
+/** "Name" or "Name (@user)" for a linked player. Mentions inside embeds render but never ping. */
+export const playerLabel = (r: {
+	name: string;
+	steamId: string;
+	discordId: string | null;
+}): string => `${escape(r.name || r.steamId)}${r.discordId ? ` (<@${r.discordId}>)` : ''}`;
 
 /** Start of the period in UTC (weeks start on Monday); null for all time. */
 export function periodStart(period: Period, now: Date): Date | null {
@@ -71,7 +80,7 @@ export function leaderboardEmbed(
 	const start = periodStart(period, now);
 	const lines = rows.map(
 		(r, i) =>
-			`**${i + 1}.** ${escape(r.name || r.steamId)} · ${r.kills} kills · ${r.deaths} deaths · K/D ${kd(r.kills, r.deaths)}`
+			`**${i + 1}.** ${playerLabel(r)} · ${r.kills} kills · ${r.deaths} deaths · K/D ${kd(r.kills, r.deaths)}`
 	);
 	const since = start ? `Since ${start.toISOString().slice(0, 10)} UTC` : 'All time';
 	const footer =
@@ -89,6 +98,7 @@ export interface CashRow {
 	steamId: string;
 	name: string;
 	cash: number;
+	discordId: string | null;
 }
 
 const money = (n: number): string => `$${Math.round(n).toLocaleString('en-US')}`;
@@ -101,9 +111,7 @@ export function cashEmbed(
 	refreshSeconds: number | null
 ): Embed {
 	const start = periodStart(period, now);
-	const lines = rows.map(
-		(r, i) => `**${i + 1}.** ${escape(r.name || r.steamId)} · ${money(r.cash)}`
-	);
+	const lines = rows.map((r, i) => `**${i + 1}.** ${playerLabel(r)} · ${money(r.cash)}`);
 	const since = start ? `Since ${start.toISOString().slice(0, 10)} UTC` : 'All time';
 	return {
 		title: `Cash earned · ${LABELS[period]}`,

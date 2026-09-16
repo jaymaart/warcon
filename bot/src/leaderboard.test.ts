@@ -43,14 +43,14 @@ describe('parseBoard', () => {
 
 describe('leaderboardEmbed', () => {
 	const rows: Row[] = [
-		{ steamId: '1', name: 'Alpha', kills: 30, deaths: 10 },
-		{ steamId: '2', name: 'Bravo', kills: 12, deaths: 0 }
+		{ steamId: '1', name: 'Alpha', kills: 30, deaths: 10, discordId: '42' },
+		{ steamId: '2', name: 'Bravo', kills: 12, deaths: 0, discordId: null }
 	];
 
 	test('ranks players with kills, deaths and K/D', () => {
 		const embed = leaderboardEmbed('weekly', rows, now, 900);
 		expect(embed.title).toBe('Leaderboard · This week');
-		expect(embed.description).toContain('**1.** Alpha');
+		expect(embed.description).toContain('**1.** Alpha (<@42>)');
 		expect(embed.description).toContain('30 kills');
 		expect(embed.description).toContain('10 deaths');
 		expect(embed.description).toContain('K/D 3.00');
@@ -77,14 +77,14 @@ describe('cashEmbed', () => {
 		const embed = cashEmbed(
 			'monthly',
 			[
-				{ steamId: '1', name: 'Alpha', cash: 1234567 },
-				{ steamId: '2', name: 'Bravo', cash: 999.6 }
+				{ steamId: '1', name: 'Alpha', cash: 1234567, discordId: null },
+				{ steamId: '2', name: 'Bravo', cash: 999.6, discordId: '7' }
 			],
 			now,
 			900
 		);
 		expect(embed.title).toBe('Cash earned · This month');
-		expect(embed.description).toBe('**1.** Alpha · $1,234,567\n**2.** Bravo · $1,000');
+		expect(embed.description).toBe('**1.** Alpha · $1,234,567\n**2.** Bravo (<@7>) · $1,000');
 		expect(embed.footer?.text).toBe('Updates every 15 min · Since 2026-09-01 UTC');
 		expect(cashEmbed('all', [], now, null).description).toBe('No cash earned yet.');
 		expect(cashEmbed('all', [], now, null).footer?.text).toBe('All time');

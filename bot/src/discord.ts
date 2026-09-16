@@ -137,19 +137,77 @@ const EPHEMERAL = 64;
 export type InteractionResponse =
 	{ type: 1 } | { type: 4; data: { embeds: Embed[]; flags: number } };
 
+export interface InteractionHandlers {
+	/** a leaderboard period button */
+	board: (board: Board, period: Period) => Embed;
+	/** a slash command from `discordId` with its string options */
+	command: (name: string, options: Record<string, string>, discordId: string) => Embed;
+}
+
 /**
  * PING gets PONG; a leaderboard button gets an ephemeral reply with that period, leaving the
  * message itself unchanged. Anything else: null (400).
  */
 export function handleInteraction(
 	payload: unknown,
-	render: (board: Board, period: Period) => Embed
+	handlers: InteractionHandlers
 ): InteractionResponse | null {
 	if (payload === null || typeof payload !== 'object') return null;
-	const p = payload as { type?: unknown; data?: { custom_id?: unknown } };
+	const p = payload as {
+		type?: unknown;
+		data?: { custom_id?: unknown; name?: unknown; options?: unknown };
+		member?: { user?: { id?: unknown } };
+		user?: { id?: unknown };
+	};
 	if (p.type === 1) return { type: 1 };
-	if (p.type !== 3) return null;
-	const target = typeof p.data?.custom_id === 'string' ? parseBoard(p.data.custom_id) : null;
-	if (!target) return null;
-	return { type: 4, data: { embeds: [render(target.board, target.period)], flags: EPHEMERAL } };
+	const reply = (embed: Embed): InteractionResponse => ({
+		type: 4,
+		data: { embeds: [embed], flags: EPHEMERAL }
+	});
+	if (p.type === 3) {
+		const target = typeof p.data?.custom_id === 'string' ? parseBoard(p.data.custom_id) : null;
+		return target ? reply(handlers.board(target.board, target.period)) : null;
+	}
+	if (p.type === 2) {
+		const name = p.data?.name;
+		const id = p.member?.user?.id ?? p.user?.id;
+		if (typeof name !== 'string' || typeof id !== 'string') return null;
+		const options: Record<string, string> = {};
+		for (const o of Array.isArray(p.data?.options) ? p.data.options : []) {
+			const r = o as { name?: unknown; value?: unknown };
+			if (typeof r.name === 'string' && typeof r.value === 'string') options[r.name] = r.value;
+		}
+		return reply(handlers.command(name, options, id));
+	}
+	return null;
+}
+
+/** Overwrites the application's global slash commands; returns how many Discord now has. */
+export async function registerCommands(
+	token: string,
+	applicationId: string,
+	commands: readonly unknown[],
+	apiBase = DISCORD_API
+): Promise<number> {
+	const res = await fetch(`${apiBase}/applications/${applicationId}/commands`, {
+		method: 'PUT',
+		headers: { authorization: `Bot ${token}`, 'content-type': 'application/json' },
+		body: JSON.stringify(commands),
+		signal: AbortSignal.timeout(15_000)
+	});
+	const text = await res.text();
+	if (!res.ok) throw new DiscordError(`PUT commands: ${res.status} ${text}`, res.status);
+	const doc: unknown = JSON.parse(text);
+	return Array.isArray(doc) ? doc.length : 0;
+}
+
+/** The application id is the bot user's id, which is the first segment of the token. */
+export function applicationIdFromToken(token: string): string | null {
+	const first = token.split('.')[0] ?? '';
+	try {
+		const id = Buffer.from(first, 'base64').toString('utf8');
+		return /^\d{15,22}$/.test(id) ? id : null;
+	} catch {
+		return null;
+	}
 }

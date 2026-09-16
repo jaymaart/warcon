@@ -33,8 +33,8 @@ describe('sitePayload', () => {
 				status,
 				players: [player(30), player(50), player(null)],
 				leaders: [
-					{ steamId: '1', name: 'Alpha', kills: 30, deaths: 12 },
-					{ steamId: '2', name: '', kills: 4, deaths: 0 }
+					{ steamId: '1', name: 'Alpha', kills: 30, deaths: 12, discordId: null },
+					{ steamId: '2', name: '', kills: 4, deaths: 0, discordId: null }
 				],
 				uptime: 0.9942,
 				discord: { members: 2148, online: 90 },

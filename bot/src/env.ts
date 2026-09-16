@@ -3,6 +3,8 @@ import type { GameServer } from './game';
 
 export interface Config {
 	token: string;
+	/** for registering slash commands; derived from the token when unset */
+	applicationId: string | null;
 	publicKey: string;
 	eventsChannelId: string;
 	leaderboardChannelId: string;
@@ -36,6 +38,7 @@ export function loadConfig(env: Env = process.env): Config {
 	const eventsChannelId = required(env, 'DISCORD_EVENTS_CHANNEL_ID');
 	return {
 		token: required(env, 'DISCORD_BOT_TOKEN'),
+		applicationId: (env.DISCORD_APPLICATION_ID ?? '').trim() || null,
 		publicKey: required(env, 'DISCORD_PUBLIC_KEY'),
 		eventsChannelId,
 		leaderboardChannelId: (env.DISCORD_LEADERBOARD_CHANNEL_ID ?? '').trim() || eventsChannelId,

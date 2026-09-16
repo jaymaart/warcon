@@ -17,12 +17,12 @@ describe('Store', () => {
 			{ steamId: '2', name: 'Two', kills: 9, deaths: 3, cash: 0 }
 		]);
 		expect(store.leaderboard(null, 10)).toEqual([
-			{ steamId: '2', name: 'Two', kills: 9, deaths: 3 },
-			{ steamId: '1', name: 'New', kills: 7, deaths: 1 }
+			{ steamId: '2', name: 'Two', kills: 9, deaths: 3, discordId: null },
+			{ steamId: '1', name: 'New', kills: 7, deaths: 1, discordId: null }
 		]);
 		expect(store.leaderboard(new Date('2026-09-15T00:00:00Z'), 10)).toEqual([
-			{ steamId: '2', name: 'Two', kills: 9, deaths: 3 },
-			{ steamId: '1', name: 'New', kills: 2, deaths: 0 }
+			{ steamId: '2', name: 'Two', kills: 9, deaths: 3, discordId: null },
+			{ steamId: '1', name: 'New', kills: 2, deaths: 0, discordId: null }
 		]);
 		expect(store.leaderboard(null, 1)).toHaveLength(1);
 		store.close();
@@ -52,12 +52,12 @@ describe('Store', () => {
 			{ steamId: '3', name: 'C', kills: 4, deaths: 0, cash: 0 }
 		]);
 		expect(store.cashEarned(null, 10)).toEqual([
-			{ steamId: '2', name: '2', cash: 9000 },
-			{ steamId: '1', name: 'A', cash: 750 }
+			{ steamId: '2', name: '2', cash: 9000, discordId: null },
+			{ steamId: '1', name: 'A', cash: 750, discordId: null }
 		]);
 		expect(store.cashEarned(new Date('2026-09-15T00:00:00Z'), 10)).toEqual([
-			{ steamId: '2', name: '2', cash: 9000 },
-			{ steamId: '1', name: 'A', cash: 250 }
+			{ steamId: '2', name: '2', cash: 9000, discordId: null },
+			{ steamId: '1', name: 'A', cash: 250, discordId: null }
 		]);
 		store.close();
 	});
@@ -84,6 +84,53 @@ describe('Store', () => {
 		store.touchPlayers(new Date(), [{ steamId: '7', name: 'Seven' }]);
 		expect(store.player('7')).toEqual({ name: 'Seven', faction: 'Army' });
 		expect(store.player('8')).toBeNull();
+		store.close();
+	});
+
+	test('links, name lookup and per-player stats with rank', () => {
+		const store = new Store(':memory:');
+		const t = new Date('2026-09-16T10:00:00Z');
+		store.touchPlayers(t, [
+			{ steamId: '1', name: 'Alpha' },
+			{ steamId: '2', name: 'alpha' },
+			{ steamId: '3', name: 'Charlie' }
+		]);
+		expect(
+			store
+				.playersNamed('ALPHA')
+				.map((p) => p.steamId)
+				.sort()
+		).toEqual(['1', '2']);
+		expect(store.playersNamed('nobody')).toEqual([]);
+		expect(store.link('d1')).toBeNull();
+		store.setLink('d1', '3');
+		expect(store.link('d1')).toBe('3');
+		store.setLink('d1', '1');
+		expect(store.link('d1')).toBe('1');
+		store.recordDeltas(t, 'S', [
+			{ steamId: '1', name: 'Alpha', kills: 5, deaths: 2, cash: 300 },
+			{ steamId: '3', name: 'Charlie', kills: 9, deaths: 0, cash: 0 },
+			{ steamId: '2', name: 'alpha', kills: 0, deaths: 1, cash: 10 }
+		]);
+		expect(store.playerStats('1', null)).toEqual({ kills: 5, deaths: 2, cash: 300, rank: 2 });
+		expect(store.playerStats('3', null)).toEqual({ kills: 9, deaths: 0, cash: 0, rank: 1 });
+		expect(store.playerStats('2', null)).toEqual({ kills: 0, deaths: 1, cash: 10, rank: null });
+		expect(store.playerStats('1', new Date('2026-09-17T00:00:00Z'))).toEqual({
+			kills: 0,
+			deaths: 0,
+			cash: 0,
+			rank: null
+		});
+		expect(store.leaderboard(null, 10)[1]).toEqual({
+			steamId: '1',
+			name: 'Alpha',
+			kills: 5,
+			deaths: 2,
+			discordId: 'd1'
+		});
+		expect(store.clearLink('d1')).toBe(true);
+		expect(store.clearLink('d1')).toBe(false);
+		expect(store.link('d1')).toBeNull();
 		store.close();
 	});
 
