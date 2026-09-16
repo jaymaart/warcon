@@ -7,6 +7,7 @@ describe('toStatus', () => {
 			serverName: 'WD #1',
 			map: 'Bakurani',
 			matchSeconds: 321,
+			scoreCap: 100,
 			players: { current: 12, max: 98 },
 			factionScores: [
 				{ name: 'Rebels', colorHex: '#ff0000', score: 41 },
@@ -17,6 +18,7 @@ describe('toStatus', () => {
 			serverName: 'WD #1',
 			map: 'Bakurani',
 			matchSeconds: 321,
+			scoreCap: 100,
 			playerCount: 12,
 			maxPlayers: 98,
 			scores: [
@@ -31,6 +33,7 @@ describe('toStatus', () => {
 			serverName: '',
 			map: '',
 			matchSeconds: null,
+			scoreCap: null,
 			playerCount: 0,
 			maxPlayers: 0,
 			scores: []

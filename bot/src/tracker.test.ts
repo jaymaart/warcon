@@ -6,6 +6,7 @@ const status = (over: Partial<Status> = {}): Status => ({
 	serverName: 'Test',
 	map: 'Bakurani',
 	matchSeconds: 600,
+	scoreCap: null,
 	playerCount: 2,
 	maxPlayers: 98,
 	scores: [

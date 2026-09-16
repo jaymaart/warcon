@@ -21,6 +21,7 @@ export interface Status {
 	serverName: string;
 	map: string;
 	matchSeconds: number | null;
+	scoreCap: number | null;
 	playerCount: number;
 	maxPlayers: number;
 	scores: FactionScore[];
@@ -68,6 +69,7 @@ export function toStatus(doc: unknown): Status {
 		serverName: str(s.serverName),
 		map: str(s.map),
 		matchSeconds: num(s.matchSeconds),
+		scoreCap: num(s.scoreCap),
 		playerCount: num(players.current) ?? 0,
 		maxPlayers: num(players.max) ?? 0,
 		scores: list(s.factionScores).map((f) => {

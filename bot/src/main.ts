@@ -7,7 +7,7 @@ import { factionColor } from './colors';
 import { Discord, DiscordError, handleInteraction, verifyInteraction, type Embed } from './discord';
 import { loadConfig } from './env';
 import { matchEndEmbed, moderationEmbed } from './events';
-import { GameClient, type GameServer } from './game';
+import { GameClient, type GameServer, type Status } from './game';
 import {
 	leaderboardComponents,
 	leaderboardEmbed,
@@ -15,6 +15,7 @@ import {
 	richestEmbed,
 	type Period
 } from './leaderboard';
+import { statusEmbed } from './status';
 import { Store } from './store';
 import { observe, type Snapshot } from './tracker';
 
@@ -27,6 +28,8 @@ interface Watched {
 	server: GameServer;
 	client: GameClient;
 	snapshot: Snapshot | null;
+	/** the last status document read; null until the first successful poll */
+	status: Status | null;
 	cursor: AuditCursor | null;
 	ok: boolean;
 	error: string;
@@ -37,6 +40,7 @@ const watched: Watched[] = cfg.servers.map((server) => ({
 	server,
 	client: new GameClient(server),
 	snapshot: null,
+	status: null,
 	cursor: readCursor(server.name),
 	ok: false,
 	error: 'not polled yet',
@@ -68,6 +72,7 @@ async function poll(w: Watched): Promise<void> {
 		const now = new Date();
 		const { snapshot, result } = observe(w.snapshot, status, players);
 		w.snapshot = snapshot;
+		w.status = status;
 		w.players = players.length;
 		store.touchPlayers(now, players);
 		store.recordDeltas(now, w.server.name, result.deltas);
@@ -127,6 +132,36 @@ function leaderboardFor(period: Period, refreshSeconds: number | null): Embed {
 }
 
 const render = (period: Period): Embed => leaderboardFor(period, null);
+
+/** One card per server in the status channel, created once and edited after that. */
+async function refreshStatusCards(): Promise<void> {
+	const channel = cfg.statusChannelId;
+	if (!channel) return;
+	for (const w of watched) {
+		const key = `status:${w.server.name}`;
+		const body = {
+			embeds: [
+				statusEmbed(
+					{ name: w.server.name, status: w.ok ? w.status : null, error: w.error },
+					new Date(),
+					cfg.statusRefreshSeconds
+				)
+			]
+		};
+		const id = store.getState(key);
+		try {
+			if (id) {
+				await discord.editMessage(channel, id, body);
+				continue;
+			}
+		} catch (err) {
+			if (!(err instanceof DiscordError) || err.status !== 404) throw err;
+			log(`${w.server.name}: status card is gone; posting a new one`);
+		}
+		store.setState(key, await discord.createMessage(channel, body));
+		log(`${w.server.name}: status card posted`);
+	}
+}
 
 let refreshing: Promise<void> | null = null;
 function refreshLeaderboard(): Promise<void> {
@@ -216,6 +251,12 @@ const server = Bun.serve({
 log(`listening on :${server.port}; watching ${watched.map((w) => w.server.name).join(', ')}`);
 for (const w of watched) void loop(() => poll(w), cfg.pollSeconds * 1000, w.server.name);
 void loop(refreshLeaderboard, cfg.leaderboardRefreshSeconds * 1000, 'leaderboard');
+if (cfg.statusChannelId) {
+	// Let the first polls land so the cards open with live data rather than "offline".
+	void Bun.sleep(3000).then(() =>
+		loop(refreshStatusCards, cfg.statusRefreshSeconds * 1000, 'status')
+	);
+}
 
 const shutdown = (): void => {
 	log('shutting down');

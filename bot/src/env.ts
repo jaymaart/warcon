@@ -6,6 +6,9 @@ export interface Config {
 	publicKey: string;
 	eventsChannelId: string;
 	leaderboardChannelId: string;
+	/** live server cards go here; off when unset */
+	statusChannelId: string | null;
+	statusRefreshSeconds: number;
 	servers: GameServer[];
 	dataDir: string;
 	pollSeconds: number;
@@ -37,6 +40,8 @@ export function loadConfig(env: Env = process.env): Config {
 		publicKey: required(env, 'DISCORD_PUBLIC_KEY'),
 		eventsChannelId,
 		leaderboardChannelId: (env.DISCORD_LEADERBOARD_CHANNEL_ID ?? '').trim() || eventsChannelId,
+		statusChannelId: (env.DISCORD_STATUS_CHANNEL_ID ?? '').trim() || null,
+		statusRefreshSeconds: positiveInt(env.STATUS_REFRESH_SECONDS, 60),
 		servers: parseServers(env),
 		dataDir: (env.DATA_DIR ?? '').trim() || './data',
 		pollSeconds: positiveInt(env.POLL_SECONDS, 10),
