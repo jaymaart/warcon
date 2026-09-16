@@ -13,7 +13,10 @@ export interface Config {
 	servers: GameServer[];
 	dataDir: string;
 	pollSeconds: number;
+	/** the standing messages are re-rendered at least this often */
 	leaderboardRefreshSeconds: number;
+	/** and within this many seconds of a change (kills, deaths, cash) */
+	leaderboardLiveSeconds: number;
 	leaderboardSize: number;
 	port: number;
 	apiBase: string;
@@ -47,6 +50,7 @@ export function loadConfig(env: Env = process.env): Config {
 		dataDir: (env.DATA_DIR ?? '').trim() || './data',
 		pollSeconds: positiveInt(env.POLL_SECONDS, 10),
 		leaderboardRefreshSeconds: positiveInt(env.LEADERBOARD_REFRESH_SECONDS, 900),
+		leaderboardLiveSeconds: Math.max(15, positiveInt(env.LEADERBOARD_LIVE_SECONDS, 60)),
 		leaderboardSize: Math.min(25, positiveInt(env.LEADERBOARD_SIZE, 10)),
 		port: positiveInt(env.PORT, 3000),
 		apiBase: (env.DISCORD_API_BASE ?? '').trim() || 'https://discord.com/api/v10'

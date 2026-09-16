@@ -84,7 +84,7 @@ export function leaderboardEmbed(
 	);
 	const since = start ? `Since ${start.toISOString().slice(0, 10)} UTC` : 'All time';
 	const footer =
-		refreshSeconds === null ? since : `Updates every ${every(refreshSeconds)} · ${since}`;
+		refreshSeconds === null ? since : `Live · updates within ${every(refreshSeconds)} · ${since}`;
 	return {
 		title: `Leaderboard · ${LABELS[period]}`,
 		description: lines.length ? lines.join('\n') : 'No kills recorded yet.',
@@ -118,7 +118,10 @@ export function cashEmbed(
 		description: lines.length ? lines.join('\n') : 'No cash earned yet.',
 		color: 0x3ba55d,
 		footer: {
-			text: refreshSeconds === null ? since : `Updates every ${every(refreshSeconds)} · ${since}`
+			text:
+				refreshSeconds === null
+					? since
+					: `Live · updates within ${every(refreshSeconds)} · ${since}`
 		},
 		timestamp: now.toISOString()
 	};

@@ -95,6 +95,7 @@ async function poll(w: Watched): Promise<void> {
 		if (!w.serverId) w.serverId = await w.client.serverId();
 		store.touchPlayers(now, players);
 		store.recordDeltas(now, w.server.name, result.deltas);
+		if (result.deltas.length) boardsDirty = true;
 		if (result.matchEnd) {
 			log(
 				`${w.server.name}: match over on ${result.matchEnd.map}, winner ${result.matchEnd.winner ?? 'draw'}`
@@ -184,7 +185,7 @@ async function publishCommands(): Promise<void> {
 async function ensureBoardMessage(board: Board): Promise<void> {
 	const key = board === 'kills' ? 'lb:message' : 'cash:message';
 	const body = {
-		embeds: [leaderboardFor(board, MAIN_PERIOD, cfg.leaderboardRefreshSeconds)],
+		embeds: [leaderboardFor(board, MAIN_PERIOD, cfg.leaderboardLiveSeconds)],
 		components: leaderboardComponents(board, MAIN_PERIOD)
 	};
 	const id = store.getState(key);
@@ -202,8 +203,18 @@ async function ensureBoardMessage(board: Board): Promise<void> {
 }
 
 let refreshing: Promise<void> | null = null;
+/** Set when a poll records kills, deaths or cash; cleared by the next render. */
+let boardsDirty = false;
+
+/** The live pass: re-render only when something changed since the last render. */
+async function refreshLeaderboardIfChanged(): Promise<void> {
+	if (!boardsDirty) return;
+	await refreshLeaderboard();
+}
+
 function refreshLeaderboard(): Promise<void> {
 	if (refreshing) return refreshing;
+	boardsDirty = false;
 	refreshing = (async () => {
 		await ensureBoardMessage('kills');
 		await ensureBoardMessage('cash');
@@ -314,6 +325,9 @@ const server = Bun.serve({
 log(`listening on :${server.port}; watching ${watched.map((w) => w.server.name).join(', ')}`);
 for (const w of watched) void loop(() => poll(w), cfg.pollSeconds * 1000, w.server.name);
 void loop(refreshLeaderboard, cfg.leaderboardRefreshSeconds * 1000, 'leaderboard');
+void Bun.sleep(cfg.leaderboardLiveSeconds * 1000).then(() =>
+	loop(refreshLeaderboardIfChanged, cfg.leaderboardLiveSeconds * 1000, 'leaderboard live')
+);
 void loop(refreshDiscordCounts, 600_000, 'discord counts');
 void publishCommands();
 

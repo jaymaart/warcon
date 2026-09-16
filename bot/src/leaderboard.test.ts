@@ -56,14 +56,14 @@ describe('leaderboardEmbed', () => {
 		expect(embed.description).toContain('K/D 3.00');
 		expect(embed.description).toContain('**2.** Bravo');
 		expect(embed.description).toContain('K/D 12.00');
-		expect(embed.footer?.text).toBe('Updates every 15 min · Since 2026-09-14 UTC');
+		expect(embed.footer?.text).toBe('Live · updates within 15 min · Since 2026-09-14 UTC');
 	});
 
 	test('all time footer and empty state', () => {
 		const embed = leaderboardEmbed('all', [], now, 3600);
 		expect(embed.title).toBe('Leaderboard · All time');
 		expect(embed.description).toBe('No kills recorded yet.');
-		expect(embed.footer?.text).toBe('Updates every 1 h · All time');
+		expect(embed.footer?.text).toBe('Live · updates within 1 h · All time');
 	});
 
 	test('a one-off reply has no refresh note', () => {
@@ -85,7 +85,7 @@ describe('cashEmbed', () => {
 		);
 		expect(embed.title).toBe('Cash earned · This month');
 		expect(embed.description).toBe('**1.** Alpha · $1,234,567\n**2.** Bravo (<@7>) · $1,000');
-		expect(embed.footer?.text).toBe('Updates every 15 min · Since 2026-09-01 UTC');
+		expect(embed.footer?.text).toBe('Live · updates within 15 min · Since 2026-09-01 UTC');
 		expect(cashEmbed('all', [], now, null).description).toBe('No cash earned yet.');
 		expect(cashEmbed('all', [], now, null).footer?.text).toBe('All time');
 	});

@@ -15,6 +15,15 @@ describe('loadConfig', () => {
 		]);
 		expect(c.leaderboardChannelId).toBe('123');
 		expect(c.pollSeconds).toBe(10);
+		expect(c.leaderboardLiveSeconds).toBe(60);
+		expect(
+			loadConfig({
+				...base,
+				GAME_URL: 'http://h:1',
+				GAME_PASSWORD: 'p',
+				LEADERBOARD_LIVE_SECONDS: '5'
+			}).leaderboardLiveSeconds
+		).toBe(15);
 		expect(c.leaderboardSize).toBe(10);
 		expect(c.dataDir).toBe('./data');
 	});
