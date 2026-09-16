@@ -18,13 +18,19 @@ const status = (over: Partial<Status> = {}): Status => ({
 	...over
 });
 
-const player = (steamId: string, kills: number, deaths = 0, name = `P${steamId}`): Player => ({
+const player = (
+	steamId: string,
+	kills: number,
+	deaths = 0,
+	name = `P${steamId}`,
+	cash = 0
+): Player => ({
 	steamId,
 	name,
 	faction: 'Rebels',
 	kills,
 	deaths,
-	cash: 0,
+	cash,
 	ping: null
 });
 
@@ -34,13 +40,13 @@ describe('observe', () => {
 		expect(result.deltas).toEqual([]);
 		expect(result.matchEnd).toBeNull();
 		expect(result.newMatch).toBe(false);
-		expect(snapshot.players.get('1')).toEqual({ name: 'P1', kills: 5, deaths: 2 });
+		expect(snapshot.players.get('1')).toEqual({ name: 'P1', kills: 5, deaths: 2, cash: 0 });
 	});
 
 	test('kills and deaths growing produce a delta', () => {
 		const first = observe(null, status(), [player('1', 5, 2)]).snapshot;
 		const { result } = observe(first, status({ matchSeconds: 610 }), [player('1', 8, 3)]);
-		expect(result.deltas).toEqual([{ steamId: '1', name: 'P1', kills: 3, deaths: 1 }]);
+		expect(result.deltas).toEqual([{ steamId: '1', name: 'P1', kills: 3, deaths: 1, cash: 0 }]);
 		expect(result.matchEnd).toBeNull();
 	});
 
@@ -106,13 +112,31 @@ describe('observe', () => {
 		const { result } = observe(first, status({ map: 'Kavkazi', matchSeconds: 20 }), [
 			player('1', 2, 1)
 		]);
-		expect(result.deltas).toEqual([{ steamId: '1', name: 'P1', kills: 2, deaths: 1 }]);
+		expect(result.deltas).toEqual([{ steamId: '1', name: 'P1', kills: 2, deaths: 1, cash: 0 }]);
 	});
 
 	test('a lower count without a new match is treated as a reset', () => {
 		const first = observe(null, status(), [player('1', 30, 10)]).snapshot;
 		const { result } = observe(first, status({ matchSeconds: 610 }), [player('1', 1, 0)]);
-		expect(result.deltas).toEqual([{ steamId: '1', name: 'P1', kills: 1, deaths: 0 }]);
+		expect(result.deltas).toEqual([{ steamId: '1', name: 'P1', kills: 1, deaths: 0, cash: 0 }]);
+	});
+
+	test('cash gained counts, spending does not, and a new match keeps the balance', () => {
+		const first = observe(null, status(), [player('1', 0, 0, 'P1', 1000)]).snapshot;
+		const gained = observe(first, status({ matchSeconds: 610 }), [player('1', 0, 0, 'P1', 1500)]);
+		expect(gained.result.deltas).toEqual([
+			{ steamId: '1', name: 'P1', kills: 0, deaths: 0, cash: 500 }
+		]);
+		const spent = observe(gained.snapshot, status({ matchSeconds: 620 }), [
+			player('1', 0, 0, 'P1', 200)
+		]);
+		expect(spent.result.deltas).toEqual([]);
+		const next = observe(spent.snapshot, status({ map: 'Kavkazi', matchSeconds: 5 }), [
+			player('1', 0, 0, 'P1', 250)
+		]);
+		expect(next.result.deltas).toEqual([
+			{ steamId: '1', name: 'P1', kills: 0, deaths: 0, cash: 50 }
+		]);
 	});
 
 	test('the snapshot keeps the latest name', () => {

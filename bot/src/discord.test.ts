@@ -30,7 +30,7 @@ describe('verifyInteraction', () => {
 });
 
 describe('handleInteraction', () => {
-	const render = (period: string) => ({ title: `Leaderboard ${period}` });
+	const render = (board: string, period: string) => ({ title: `${board} ${period}` });
 
 	test('answers a ping with a pong', () => {
 		expect(handleInteraction({ type: 1 }, render)).toEqual({ type: 1 });
@@ -39,7 +39,10 @@ describe('handleInteraction', () => {
 	test('a leaderboard button gets an ephemeral reply', () => {
 		expect(
 			handleInteraction({ type: 3, data: { custom_id: 'lb:weekly', component_type: 2 } }, render)
-		).toEqual({ type: 4, data: { embeds: [{ title: 'Leaderboard weekly' }], flags: 64 } });
+		).toEqual({ type: 4, data: { embeds: [{ title: 'kills weekly' }], flags: 64 } });
+		expect(
+			handleInteraction({ type: 3, data: { custom_id: 'cash:all', component_type: 2 } }, render)
+		).toEqual({ type: 4, data: { embeds: [{ title: 'cash all' }], flags: 64 } });
 	});
 
 	test('anything else is refused', () => {

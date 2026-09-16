@@ -7,14 +7,14 @@ describe('Store', () => {
 		const t1 = new Date('2026-09-10T10:00:00Z');
 		const t2 = new Date('2026-09-16T10:00:00Z');
 		store.touchPlayers(t1, [{ steamId: '1', name: 'Old' }]);
-		store.recordDeltas(t1, 'A', [{ steamId: '1', name: 'Old', kills: 5, deaths: 1 }]);
+		store.recordDeltas(t1, 'A', [{ steamId: '1', name: 'Old', kills: 5, deaths: 1, cash: 0 }]);
 		store.touchPlayers(t2, [
 			{ steamId: '1', name: 'New' },
 			{ steamId: '2', name: 'Two' }
 		]);
 		store.recordDeltas(t2, 'A', [
-			{ steamId: '1', name: 'New', kills: 2, deaths: 0 },
-			{ steamId: '2', name: 'Two', kills: 9, deaths: 3 }
+			{ steamId: '1', name: 'New', kills: 2, deaths: 0, cash: 0 },
+			{ steamId: '2', name: 'Two', kills: 9, deaths: 3, cash: 0 }
 		]);
 		expect(store.leaderboard(null, 10)).toEqual([
 			{ steamId: '2', name: 'Two', kills: 9, deaths: 3 },
@@ -32,29 +32,33 @@ describe('Store', () => {
 		const store = new Store(':memory:');
 		const t = new Date();
 		store.recordDeltas(t, 'A', [
-			{ steamId: '1', name: 'A', kills: 0, deaths: 4 },
-			{ steamId: '2', name: 'B', kills: 3, deaths: 2 },
-			{ steamId: '3', name: 'C', kills: 3, deaths: 1 }
+			{ steamId: '1', name: 'A', kills: 0, deaths: 4, cash: 0 },
+			{ steamId: '2', name: 'B', kills: 3, deaths: 2, cash: 0 },
+			{ steamId: '3', name: 'C', kills: 3, deaths: 1, cash: 0 }
 		]);
 		expect(store.leaderboard(null, 10).map((r) => r.steamId)).toEqual(['3', '2']);
 		store.close();
 	});
 
-	test('richest players rank by the latest balance', () => {
+	test('cash earned sums per player since a moment', () => {
 		const store = new Store(':memory:');
-		const t = new Date();
-		store.touchPlayers(t, [
-			{ steamId: '1', name: 'A', cash: 500 },
-			{ steamId: '2', name: 'B', cash: 9000 },
-			{ steamId: '3', name: 'C', cash: 0 }
+		const t1 = new Date('2026-09-10T10:00:00Z');
+		const t2 = new Date('2026-09-16T10:00:00Z');
+		store.touchPlayers(t2, [{ steamId: '1', name: 'A' }]);
+		store.recordDeltas(t1, 'S', [{ steamId: '1', name: 'A', kills: 0, deaths: 0, cash: 500 }]);
+		store.recordDeltas(t2, 'S', [
+			{ steamId: '1', name: 'A', kills: 1, deaths: 0, cash: 250 },
+			{ steamId: '2', name: 'B', kills: 0, deaths: 0, cash: 9000 },
+			{ steamId: '3', name: 'C', kills: 4, deaths: 0, cash: 0 }
 		]);
-		store.touchPlayers(t, [{ steamId: '1', name: 'A', cash: 12000 }]);
-		store.touchPlayers(t, [{ steamId: '2', name: 'B2' }]); // no cash given: balance kept
-		expect(store.richest(10)).toEqual([
-			{ steamId: '1', name: 'A', cash: 12000 },
-			{ steamId: '2', name: 'B2', cash: 9000 }
+		expect(store.cashEarned(null, 10)).toEqual([
+			{ steamId: '2', name: '2', cash: 9000 },
+			{ steamId: '1', name: 'A', cash: 750 }
 		]);
-		expect(store.richest(1)).toHaveLength(1);
+		expect(store.cashEarned(new Date('2026-09-15T00:00:00Z'), 10)).toEqual([
+			{ steamId: '2', name: '2', cash: 9000 },
+			{ steamId: '1', name: 'A', cash: 250 }
+		]);
 		store.close();
 	});
 

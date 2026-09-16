@@ -6,6 +6,7 @@ export interface PlayerCounts {
 	name: string;
 	kills: number;
 	deaths: number;
+	cash: number;
 }
 
 export interface Snapshot {
@@ -20,6 +21,8 @@ export interface StatDelta {
 	name: string;
 	kills: number;
 	deaths: number;
+	/** cash gained since the last poll; spending never counts */
+	cash: number;
 }
 
 export interface MatchEnd {
@@ -49,7 +52,10 @@ export function observe(
 		matchSeconds: status.matchSeconds,
 		scores: status.scores,
 		players: new Map(
-			players.map((p) => [p.steamId, { name: p.name, kills: p.kills, deaths: p.deaths }])
+			players.map((p) => [
+				p.steamId,
+				{ name: p.name, kills: p.kills, deaths: p.deaths, cash: p.cash }
+			])
 		)
 	};
 	if (!prev) return { snapshot, result: { newMatch: false, matchEnd: null, deltas: [] } };
@@ -68,7 +74,9 @@ export function observe(
 		const base = newMatch ? { kills: 0, deaths: 0 } : before;
 		const kills = p.kills < base.kills ? p.kills : p.kills - base.kills;
 		const deaths = p.deaths < base.deaths ? p.deaths : p.deaths - base.deaths;
-		if (kills > 0 || deaths > 0) deltas.push({ steamId: p.steamId, name: p.name, kills, deaths });
+		const cash = Math.max(0, p.cash - before.cash); // the balance survives a new match
+		if (kills > 0 || deaths > 0 || cash > 0)
+			deltas.push({ steamId: p.steamId, name: p.name, kills, deaths, cash });
 	}
 	return { snapshot, result: { newMatch, matchEnd, deltas } };
 }

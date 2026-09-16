@@ -37,9 +37,18 @@ export function periodStart(period: Period, now: Date): Date | null {
 
 export const periodLabel = (period: Period): string => LABELS[period];
 
-export function parsePeriod(customId: string): Period | null {
-	const p = customId.startsWith('lb:') ? customId.slice(3) : '';
-	return (PERIODS as readonly string[]).includes(p) ? (p as Period) : null;
+/** The two standing leaderboards; each has its own message and buttons. */
+export type Board = 'kills' | 'cash';
+const PREFIX: Record<Board, string> = { kills: 'lb', cash: 'cash' };
+
+export function parseBoard(customId: string): { board: Board; period: Period } | null {
+	const i = customId.indexOf(':');
+	if (i < 0) return null;
+	const prefix = customId.slice(0, i);
+	const p = customId.slice(i + 1);
+	const board = (Object.keys(PREFIX) as Board[]).find((b) => PREFIX[b] === prefix);
+	if (!board || !(PERIODS as readonly string[]).includes(p)) return null;
+	return { board, period: p as Period };
 }
 
 const kd = (kills: number, deaths: number): string =>
@@ -84,21 +93,30 @@ export interface CashRow {
 
 const money = (n: number): string => `$${Math.round(n).toLocaleString('en-US')}`;
 
-/** Richest players by their cash balance as last seen (a balance, so no period). */
-export function richestEmbed(rows: CashRow[], now: Date): Embed {
+/** Top earners: cash gained in the period (spending is never subtracted). */
+export function cashEmbed(
+	period: Period,
+	rows: CashRow[],
+	now: Date,
+	refreshSeconds: number | null
+): Embed {
+	const start = periodStart(period, now);
 	const lines = rows.map(
 		(r, i) => `**${i + 1}.** ${escape(r.name || r.steamId)} · ${money(r.cash)}`
 	);
+	const since = start ? `Since ${start.toISOString().slice(0, 10)} UTC` : 'All time';
 	return {
-		title: 'Richest players',
-		description: lines.length ? lines.join('\n') : 'No balances seen yet.',
+		title: `Cash earned · ${LABELS[period]}`,
+		description: lines.length ? lines.join('\n') : 'No cash earned yet.',
 		color: 0x3ba55d,
-		footer: { text: 'Cash balance as last seen on the server' },
+		footer: {
+			text: refreshSeconds === null ? since : `Updates every ${every(refreshSeconds)} · ${since}`
+		},
 		timestamp: now.toISOString()
 	};
 }
 
-export function leaderboardComponents(active: Period): ActionRow[] {
+export function leaderboardComponents(board: Board, active: Period): ActionRow[] {
 	return [
 		{
 			type: 1,
@@ -106,7 +124,7 @@ export function leaderboardComponents(active: Period): ActionRow[] {
 				type: 2,
 				style: p === active ? 1 : 2,
 				label: LABELS[p],
-				custom_id: `lb:${p}`
+				custom_id: `${PREFIX[board]}:${p}`
 			}))
 		}
 	];

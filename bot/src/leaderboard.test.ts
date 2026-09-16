@@ -2,9 +2,9 @@ import { describe, expect, test } from 'bun:test';
 import {
 	leaderboardComponents,
 	leaderboardEmbed,
-	parsePeriod,
+	parseBoard,
+	cashEmbed,
 	periodStart,
-	richestEmbed,
 	type Row
 } from './leaderboard';
 
@@ -31,12 +31,13 @@ describe('periodStart', () => {
 	});
 });
 
-describe('parsePeriod', () => {
+describe('parseBoard', () => {
 	test('reads the button id', () => {
-		expect(parsePeriod('lb:daily')).toBe('daily');
-		expect(parsePeriod('lb:all')).toBe('all');
-		expect(parsePeriod('lb:yearly')).toBeNull();
-		expect(parsePeriod('other')).toBeNull();
+		expect(parseBoard('lb:daily')).toEqual({ board: 'kills', period: 'daily' });
+		expect(parseBoard('cash:all')).toEqual({ board: 'cash', period: 'all' });
+		expect(parseBoard('lb:yearly')).toBeNull();
+		expect(parseBoard('gold:daily')).toBeNull();
+		expect(parseBoard('other')).toBeNull();
 	});
 });
 
@@ -71,24 +72,28 @@ describe('leaderboardEmbed', () => {
 	});
 });
 
-describe('richestEmbed', () => {
-	test('ranks balances with thousands separators', () => {
-		const embed = richestEmbed(
+describe('cashEmbed', () => {
+	test('ranks earnings with thousands separators and the period footer', () => {
+		const embed = cashEmbed(
+			'monthly',
 			[
 				{ steamId: '1', name: 'Alpha', cash: 1234567 },
 				{ steamId: '2', name: 'Bravo', cash: 999.6 }
 			],
-			now
+			now,
+			900
 		);
-		expect(embed.title).toBe('Richest players');
+		expect(embed.title).toBe('Cash earned · This month');
 		expect(embed.description).toBe('**1.** Alpha · $1,234,567\n**2.** Bravo · $1,000');
-		expect(richestEmbed([], now).description).toBe('No balances seen yet.');
+		expect(embed.footer?.text).toBe('Updates every 15 min · Since 2026-09-01 UTC');
+		expect(cashEmbed('all', [], now, null).description).toBe('No cash earned yet.');
+		expect(cashEmbed('all', [], now, null).footer?.text).toBe('All time');
 	});
 });
 
 describe('leaderboardComponents', () => {
 	test('one row of four buttons with the active period highlighted', () => {
-		const rows = leaderboardComponents('monthly');
+		const rows = leaderboardComponents('kills', 'monthly');
 		expect(rows).toHaveLength(1);
 		const buttons = rows[0]?.components ?? [];
 		expect(buttons.map((b) => b.custom_id)).toEqual([
@@ -98,5 +103,11 @@ describe('leaderboardComponents', () => {
 			'lb:all'
 		]);
 		expect(buttons.map((b) => b.style)).toEqual([2, 2, 1, 2]);
+		expect(leaderboardComponents('cash', 'all')[0]?.components.map((b) => b.custom_id)).toEqual([
+			'cash:daily',
+			'cash:weekly',
+			'cash:monthly',
+			'cash:all'
+		]);
 	});
 });

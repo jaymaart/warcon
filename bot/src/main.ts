@@ -12,7 +12,8 @@ import {
 	leaderboardComponents,
 	leaderboardEmbed,
 	periodStart,
-	richestEmbed,
+	cashEmbed,
+	type Board,
 	type Period
 } from './leaderboard';
 import { fetchDiscordCounts, sitePayload, type DiscordCounts } from './site';
@@ -131,41 +132,43 @@ function summarize(payload: unknown): string {
 /** The standing message always shows today; buttons answer privately with any period. */
 const MAIN_PERIOD: Period = 'daily';
 
-function leaderboardFor(period: Period, refreshSeconds: number | null): Embed {
+function leaderboardFor(board: Board, period: Period, refreshSeconds: number | null): Embed {
 	const now = new Date();
-	return leaderboardEmbed(
-		period,
-		store.leaderboard(periodStart(period, now), cfg.leaderboardSize),
-		now,
-		refreshSeconds
-	);
+	const since = periodStart(period, now);
+	return board === 'kills'
+		? leaderboardEmbed(period, store.leaderboard(since, cfg.leaderboardSize), now, refreshSeconds)
+		: cashEmbed(period, store.cashEarned(since, cfg.leaderboardSize), now, refreshSeconds);
 }
 
-const render = (period: Period): Embed => leaderboardFor(period, null);
+const render = (board: Board, period: Period): Embed => leaderboardFor(board, period, null);
+
+/** Creates or edits the standing message for one board, keyed in state by `<board>:message`. */
+async function ensureBoardMessage(board: Board): Promise<void> {
+	const key = board === 'kills' ? 'lb:message' : 'cash:message';
+	const body = {
+		embeds: [leaderboardFor(board, MAIN_PERIOD, cfg.leaderboardRefreshSeconds)],
+		components: leaderboardComponents(board, MAIN_PERIOD)
+	};
+	const id = store.getState(key);
+	try {
+		if (id) {
+			await discord.editMessage(cfg.leaderboardChannelId, id, body);
+			return;
+		}
+	} catch (err) {
+		if (!(err instanceof DiscordError) || err.status !== 404) throw err;
+		log(`${board} leaderboard message is gone; posting a new one`);
+	}
+	store.setState(key, await discord.createMessage(cfg.leaderboardChannelId, body));
+	log(`${board} leaderboard message posted`);
+}
 
 let refreshing: Promise<void> | null = null;
 function refreshLeaderboard(): Promise<void> {
 	if (refreshing) return refreshing;
 	refreshing = (async () => {
-		const body = {
-			embeds: [
-				leaderboardFor(MAIN_PERIOD, cfg.leaderboardRefreshSeconds),
-				richestEmbed(store.richest(cfg.leaderboardSize), new Date())
-			],
-			components: leaderboardComponents(MAIN_PERIOD)
-		};
-		const id = store.getState('lb:message');
-		try {
-			if (id) {
-				await discord.editMessage(cfg.leaderboardChannelId, id, body);
-				return;
-			}
-		} catch (err) {
-			if (!(err instanceof DiscordError) || err.status !== 404) throw err;
-			log('leaderboard message is gone; posting a new one');
-		}
-		store.setState('lb:message', await discord.createMessage(cfg.leaderboardChannelId, body));
-		log('leaderboard message posted');
+		await ensureBoardMessage('kills');
+		await ensureBoardMessage('cash');
 	})().finally(() => {
 		refreshing = null;
 	});

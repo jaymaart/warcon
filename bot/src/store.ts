@@ -22,7 +22,8 @@ export class Store {
 				server TEXT NOT NULL,
 				steam_id TEXT NOT NULL,
 				kills INTEGER NOT NULL,
-				deaths INTEGER NOT NULL
+				deaths INTEGER NOT NULL,
+				cash INTEGER NOT NULL DEFAULT 0
 			);
 			CREATE INDEX IF NOT EXISTS stats_at ON stats (at);
 			CREATE TABLE IF NOT EXISTS state (
@@ -44,6 +45,12 @@ export class Store {
 			.map((c) => c.name);
 		if (!columns.includes('cash')) this.db.exec('ALTER TABLE players ADD COLUMN cash INTEGER');
 		if (!columns.includes('faction')) this.db.exec('ALTER TABLE players ADD COLUMN faction TEXT');
+		const statColumns = this.db
+			.query<{ name: string }, []>('PRAGMA table_info(stats)')
+			.all()
+			.map((c) => c.name);
+		if (!statColumns.includes('cash'))
+			this.db.exec('ALTER TABLE stats ADD COLUMN cash INTEGER NOT NULL DEFAULT 0');
 	}
 
 	/**
@@ -67,24 +74,29 @@ export class Store {
 		})();
 	}
 
-	/** Players with the highest cash balance as last seen. */
-	richest(limit: number): CashRow[] {
+	/** Top players by cash earned since `since` (all time when null). */
+	cashEarned(since: Date | null, limit: number): CashRow[] {
 		return this.db
-			.query<CashRow, [number]>(
-				`SELECT steam_id AS steamId, name, cash FROM players
-				 WHERE cash > 0 ORDER BY cash DESC, name ASC LIMIT ?`
+			.query<CashRow, [string | null, string | null, number]>(
+				`SELECT s.steam_id AS steamId, COALESCE(p.name, s.steam_id) AS name, SUM(s.cash) AS cash
+				 FROM stats s LEFT JOIN players p ON p.steam_id = s.steam_id
+				 WHERE ?1 IS NULL OR s.at >= ?2
+				 GROUP BY s.steam_id
+				 HAVING SUM(s.cash) > 0
+				 ORDER BY cash DESC, name ASC
+				 LIMIT ?3`
 			)
-			.all(limit);
+			.all(since ? since.toISOString() : null, since ? since.toISOString() : null, limit);
 	}
 
 	recordDeltas(at: Date, server: string, deltas: StatDelta[]): void {
 		if (!deltas.length) return;
-		const insert = this.db.query<void, [string, string, string, number, number]>(
-			'INSERT INTO stats (at, server, steam_id, kills, deaths) VALUES (?, ?, ?, ?, ?)'
+		const insert = this.db.query<void, [string, string, string, number, number, number]>(
+			'INSERT INTO stats (at, server, steam_id, kills, deaths, cash) VALUES (?, ?, ?, ?, ?, ?)'
 		);
 		const iso = at.toISOString();
 		this.db.transaction(() => {
-			for (const d of deltas) insert.run(iso, server, d.steamId, d.kills, d.deaths);
+			for (const d of deltas) insert.run(iso, server, d.steamId, d.kills, d.deaths, d.cash);
 		})();
 	}
 

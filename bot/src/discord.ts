@@ -1,6 +1,6 @@
 // Discord REST (bot token) for posting and editing messages, plus the interactions endpoint
 // side: Ed25519 request verification and the button handler. No gateway connection is needed.
-import { parsePeriod, type Period } from './leaderboard';
+import { parseBoard, type Board, type Period } from './leaderboard';
 
 export interface EmbedField {
 	name: string;
@@ -143,13 +143,13 @@ export type InteractionResponse =
  */
 export function handleInteraction(
 	payload: unknown,
-	render: (period: Period) => Embed
+	render: (board: Board, period: Period) => Embed
 ): InteractionResponse | null {
 	if (payload === null || typeof payload !== 'object') return null;
 	const p = payload as { type?: unknown; data?: { custom_id?: unknown } };
 	if (p.type === 1) return { type: 1 };
 	if (p.type !== 3) return null;
-	const period = typeof p.data?.custom_id === 'string' ? parsePeriod(p.data.custom_id) : null;
-	if (!period) return null;
-	return { type: 4, data: { embeds: [render(period)], flags: EPHEMERAL } };
+	const target = typeof p.data?.custom_id === 'string' ? parseBoard(p.data.custom_id) : null;
+	if (!target) return null;
+	return { type: 4, data: { embeds: [render(target.board, target.period)], flags: EPHEMERAL } };
 }
