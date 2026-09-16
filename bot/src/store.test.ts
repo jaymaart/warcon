@@ -58,6 +58,21 @@ describe('Store', () => {
 		store.close();
 	});
 
+	test('uptime is the share of reachable polls since a day', () => {
+		const store = new Store(':memory:');
+		expect(store.uptime('2026-08-17')).toBeNull();
+		const old = new Date('2026-08-01T00:00:00Z');
+		const recent = new Date('2026-09-10T12:00:00Z');
+		store.recordPoll(old, 'A', false);
+		store.recordPoll(recent, 'A', true);
+		store.recordPoll(recent, 'A', true);
+		store.recordPoll(recent, 'A', false);
+		store.recordPoll(recent, 'B', true);
+		expect(store.uptime('2026-08-17')).toBe(0.75);
+		expect(store.uptime('2026-08-01')).toBe(0.6);
+		store.close();
+	});
+
 	test('player names resolve for moderation events', () => {
 		const store = new Store(':memory:');
 		store.touchPlayers(new Date(), [{ steamId: '7', name: 'Seven', faction: 'Army' }]);

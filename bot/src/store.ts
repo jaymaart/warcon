@@ -29,6 +29,13 @@ export class Store {
 				key TEXT PRIMARY KEY,
 				value TEXT NOT NULL
 			);
+			CREATE TABLE IF NOT EXISTS uptime (
+				day TEXT NOT NULL,
+				server TEXT NOT NULL,
+				ok INTEGER NOT NULL,
+				total INTEGER NOT NULL,
+				PRIMARY KEY (day, server)
+			);
 		`);
 		// Added after the first release: databases created before it lack the column.
 		const columns = this.db
@@ -95,6 +102,26 @@ export class Store {
 				 LIMIT ?3`
 			)
 			.all(since ? since.toISOString() : null, since ? since.toISOString() : null, limit);
+	}
+
+	/** Counts one poll for the UTC day: reachable or not. */
+	recordPoll(at: Date, server: string, ok: boolean): void {
+		this.db
+			.query<void, [string, string, number]>(
+				`INSERT INTO uptime (day, server, ok, total) VALUES (?, ?, ?, 1)
+				 ON CONFLICT (day, server) DO UPDATE SET ok = ok + excluded.ok, total = total + 1`
+			)
+			.run(at.toISOString().slice(0, 10), server, ok ? 1 : 0);
+	}
+
+	/** Share of polls that reached the servers since the UTC day (0 to 1); null with no polls. */
+	uptime(sinceDay: string): number | null {
+		const row = this.db
+			.query<{ ok: number; total: number }, [string]>(
+				'SELECT COALESCE(SUM(ok), 0) AS ok, COALESCE(SUM(total), 0) AS total FROM uptime WHERE day >= ?'
+			)
+			.get(sinceDay);
+		return row && row.total > 0 ? row.ok / row.total : null;
 	}
 
 	player(steamId: string): { name: string; faction: string | null } | null {

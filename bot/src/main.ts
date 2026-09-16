@@ -7,7 +7,7 @@ import { factionColor } from './colors';
 import { Discord, DiscordError, handleInteraction, verifyInteraction, type Embed } from './discord';
 import { loadConfig } from './env';
 import { matchEndEmbed, moderationEmbed } from './events';
-import { GameClient, type GameServer, type Status } from './game';
+import { GameClient, type GameServer, type Player, type Status } from './game';
 import {
 	leaderboardComponents,
 	leaderboardEmbed,
@@ -15,6 +15,7 @@ import {
 	richestEmbed,
 	type Period
 } from './leaderboard';
+import { fetchDiscordCounts, sitePayload, type DiscordCounts } from './site';
 import { statusEmbed } from './status';
 import { Store } from './store';
 import { observe, type Snapshot } from './tracker';
@@ -32,6 +33,8 @@ interface Watched {
 	status: Status | null;
 	/** the join code from GET /v1/server-id; '' until read */
 	serverId: string;
+	/** the last player list read; empty until the first successful poll */
+	lastPlayers: Player[];
 	cursor: AuditCursor | null;
 	ok: boolean;
 	error: string;
@@ -44,6 +47,7 @@ const watched: Watched[] = cfg.servers.map((server) => ({
 	snapshot: null,
 	status: null,
 	serverId: '',
+	lastPlayers: [],
 	cursor: readCursor(server.name),
 	ok: false,
 	error: 'not polled yet',
@@ -77,6 +81,8 @@ async function poll(w: Watched): Promise<void> {
 		w.snapshot = snapshot;
 		w.status = status;
 		w.players = players.length;
+		w.lastPlayers = players;
+		store.recordPoll(now, w.server.name, true);
 		store.touchPlayers(now, players);
 		store.recordDeltas(now, w.server.name, result.deltas);
 		if (result.matchEnd) {
@@ -94,6 +100,7 @@ async function poll(w: Watched): Promise<void> {
 		w.error = '';
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
+		store.recordPoll(new Date(), w.server.name, false);
 		if (w.ok || w.error !== message) log(`${w.server.name}: ${message}`);
 		w.ok = false;
 		w.error = message;
@@ -218,11 +225,53 @@ async function loop(fn: () => Promise<void>, everyMs: number, what: string): Pro
 	}
 }
 
+// ---- The landing page: static files from ./site and one JSON document it polls. -------------
+const SITE_DIR = `${import.meta.dir}/../site`;
+let discordCounts: DiscordCounts | null = null;
+
+async function refreshDiscordCounts(): Promise<void> {
+	discordCounts = (await fetchDiscordCounts(cfg.discordInvite)) ?? discordCounts;
+}
+
+/** The first configured server is the one the page describes. */
+function siteDocument(): ReturnType<typeof sitePayload> {
+	const w = watched[0]!;
+	const now = new Date();
+	const since = new Date(now.getTime() - 30 * 86_400_000).toISOString().slice(0, 10);
+	return sitePayload(
+		{
+			serverName: w.server.name,
+			serverId: w.serverId,
+			status: w.ok ? w.status : null,
+			players: w.ok ? w.lastPlayers : [],
+			leaders: store.leaderboard(periodStart('monthly', now), 10),
+			uptime: store.uptime(since),
+			discord: discordCounts,
+			error: w.error
+		},
+		now
+	);
+}
+
+function siteFile(pathname: string): Response {
+	const name = pathname === '/' ? 'index.html' : pathname.replace(/^\/assets\//, 'assets/');
+	if (name.includes('..') || !/^(index\.html|assets\/[\w.-]+)$/.test(name))
+		return new Response('not found', { status: 404 });
+	const file = Bun.file(`${SITE_DIR}/${name}`);
+	return new Response(file, {
+		headers: { 'cache-control': name === 'index.html' ? 'no-cache' : 'public, max-age=86400' }
+	});
+}
+
 const server = Bun.serve({
 	port: cfg.port,
 	hostname: '0.0.0.0',
 	async fetch(req) {
 		const url = new URL(req.url);
+		if (req.method === 'GET' && (url.pathname === '/' || url.pathname.startsWith('/assets/')))
+			return siteFile(url.pathname);
+		if (req.method === 'GET' && url.pathname === '/api/site')
+			return Response.json(siteDocument(), { headers: { 'cache-control': 'no-store' } });
 		if (url.pathname === '/health') {
 			return Response.json({
 				ok: watched.some((w) => w.ok),
@@ -266,6 +315,7 @@ const server = Bun.serve({
 log(`listening on :${server.port}; watching ${watched.map((w) => w.server.name).join(', ')}`);
 for (const w of watched) void loop(() => poll(w), cfg.pollSeconds * 1000, w.server.name);
 void loop(refreshLeaderboard, cfg.leaderboardRefreshSeconds * 1000, 'leaderboard');
+void loop(refreshDiscordCounts, 600_000, 'discord counts');
 if (cfg.statusChannelId) {
 	// Let the first polls land so the cards open with live data rather than "offline".
 	void Bun.sleep(3000).then(() =>

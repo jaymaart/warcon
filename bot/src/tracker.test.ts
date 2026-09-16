@@ -5,6 +5,8 @@ import type { Player, Status } from './game';
 const status = (over: Partial<Status> = {}): Status => ({
 	serverName: 'Test',
 	map: 'Bakurani',
+	experiences: [],
+	lighting: '',
 	matchSeconds: 600,
 	scoreCap: null,
 	playerCount: 2,
@@ -22,7 +24,8 @@ const player = (steamId: string, kills: number, deaths = 0, name = `P${steamId}`
 	faction: 'Rebels',
 	kills,
 	deaths,
-	cash: 0
+	cash: 0,
+	ping: null
 });
 
 describe('observe', () => {

@@ -5,5 +5,6 @@ ENV NODE_ENV=production PORT=3000 DATA_DIR=/data
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production && rm -rf ~/.bun/install/cache
 COPY src ./src
+COPY site ./site
 EXPOSE 3000
 CMD ["bun", "src/main.ts"]

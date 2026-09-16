@@ -20,6 +20,8 @@ export interface FactionScore {
 export interface Status {
 	serverName: string;
 	map: string;
+	experiences: string[];
+	lighting: string;
 	matchSeconds: number | null;
 	scoreCap: number | null;
 	playerCount: number;
@@ -35,6 +37,8 @@ export interface Player {
 	deaths: number;
 	/** the player's cash balance (persists across sessions) */
 	cash: number;
+	/** round-trip to the server in ms; null when the build does not report it */
+	ping: number | null;
 }
 
 export interface AuditEntry {
@@ -68,6 +72,8 @@ export function toStatus(doc: unknown): Status {
 	return {
 		serverName: str(s.serverName),
 		map: str(s.map),
+		experiences: list(s.experiences).filter((e): e is string => typeof e === 'string'),
+		lighting: str(s.lighting),
 		matchSeconds: num(s.matchSeconds),
 		scoreCap: num(s.scoreCap),
 		playerCount: num(players.current) ?? 0,
@@ -91,7 +97,8 @@ export function toPlayers(doc: unknown): Player[] {
 			faction: typeof r.faction === 'string' ? r.faction : null,
 			kills: num(r.kills) ?? 0,
 			deaths: num(r.deaths) ?? 0,
-			cash: num(r.cash) ?? 0
+			cash: num(r.cash) ?? 0,
+			ping: num(r.pingMs) ?? num(r.ping)
 		});
 	}
 	return out;

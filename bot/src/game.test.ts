@@ -6,6 +6,8 @@ describe('toStatus', () => {
 		const s = toStatus({
 			serverName: 'WD #1',
 			map: 'Bakurani',
+			experiences: ['KOTH', 7],
+			lighting: 'DayLateClear',
 			matchSeconds: 321,
 			scoreCap: 100,
 			players: { current: 12, max: 98 },
@@ -17,6 +19,8 @@ describe('toStatus', () => {
 		expect(s).toEqual({
 			serverName: 'WD #1',
 			map: 'Bakurani',
+			experiences: ['KOTH'],
+			lighting: 'DayLateClear',
 			matchSeconds: 321,
 			scoreCap: 100,
 			playerCount: 12,
@@ -32,6 +36,8 @@ describe('toStatus', () => {
 		expect(toStatus({})).toEqual({
 			serverName: '',
 			map: '',
+			experiences: [],
+			lighting: '',
 			matchSeconds: null,
 			scoreCap: null,
 			playerCount: 0,
@@ -47,13 +53,29 @@ describe('toPlayers', () => {
 		expect(
 			toPlayers({
 				players: [
-					{ steamId: 4242, name: 'Alpha', faction: 'Rebels', kills: 3, deaths: 1, cash: 2500 },
+					{
+						steamId: 4242,
+						name: 'Alpha',
+						faction: 'Rebels',
+						kills: 3,
+						deaths: 1,
+						cash: 2500,
+						pingMs: 41
+					},
 					{ steamId: '2', name: 'Bravo', faction: null }
 				]
 			})
 		).toEqual([
-			{ steamId: '4242', name: 'Alpha', faction: 'Rebels', kills: 3, deaths: 1, cash: 2500 },
-			{ steamId: '2', name: 'Bravo', faction: null, kills: 0, deaths: 0, cash: 0 }
+			{
+				steamId: '4242',
+				name: 'Alpha',
+				faction: 'Rebels',
+				kills: 3,
+				deaths: 1,
+				cash: 2500,
+				ping: 41
+			},
+			{ steamId: '2', name: 'Bravo', faction: null, kills: 0, deaths: 0, cash: 0, ping: null }
 		]);
 	});
 

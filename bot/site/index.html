@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Warfrogs</title>
+		<meta
+			name="description"
+			content="Warfrogs WARDOGS server: live status, monthly standings and the Discord."
+		/>
+		<link rel="icon" href="/assets/warfrogs-emblem.png" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow:wght@400;500;600&family=Saira+Stencil+One&display=swap"
+			rel="stylesheet"
+		/>
+		<style>
+			html,
+			body {
+				margin: 0;
+				padding: 0;
+				background: #0f1210;
+			}
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				color: #e4e7dc;
+				font-family: Barlow, system-ui, sans-serif;
+				font-size: 16px;
+				line-height: 1.55;
+				overflow-x: hidden;
+				padding-bottom: 84px;
+			}
+			a {
+				color: #8ce02a;
+				text-decoration: none;
+			}
+			a:hover {
+				color: #dcf072;
+			}
+			.btn {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				gap: 10px;
+				background: #8ce02a;
+				color: #14180f;
+				font-family: Oswald, sans-serif;
+				font-weight: 600;
+				font-size: 18px;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
+				padding: 16px 26px;
+				border-radius: 2px;
+				border: 0;
+				border-bottom: 3px solid #4e8a10;
+				min-height: 56px;
+				cursor: pointer;
+			}
+			.btn:hover {
+				background: #a6ef4c;
+				color: #14180f;
+			}
+			.btn-ghost {
+				background: transparent;
+				color: #d6dcc6;
+				font-weight: 500;
+				font-size: 17px;
+				border: 1px solid #4a5535;
+				border-bottom: 1px solid #4a5535;
+				padding: 16px 22px;
+			}
+			.btn-ghost:hover {
+				background: transparent;
+				border-color: #8b9673;
+				color: #edf0e3;
+			}
+			.stat {
+				background: #181d16;
+				border: 1px solid #2e3623;
+				border-left: 3px solid #4a5535;
+				padding: 16px 16px 14px;
+			}
+			.stat.hot {
+				border-left-color: #8ce02a;
+			}
+			.stat .label {
+				font-family: Oswald, sans-serif;
+				font-size: 12px;
+				letter-spacing: 0.16em;
+				text-transform: uppercase;
+				color: #8b9673;
+			}
+			.stat .value {
+				font-family: Oswald, sans-serif;
+				font-weight: 600;
+				font-size: 38px;
+				line-height: 1.1;
+				color: #edf0e3;
+				margin-top: 6px;
+			}
+			.stat .value small {
+				font-size: 20px;
+				color: #97a17c;
+			}
+			.stat .sub {
+				font-size: 14px;
+				color: #8b9673;
+			}
+			.kicker {
+				font-family: 'Saira Stencil One', Oswald, sans-serif;
+				font-size: 12px;
+				letter-spacing: 0.24em;
+				text-transform: uppercase;
+				color: #97a17c;
+			}
+			h2 {
+				font-family: Oswald, sans-serif;
+				font-weight: 600;
+				text-transform: uppercase;
+				font-size: clamp(28px, 7vw, 40px);
+				line-height: 1.05;
+				margin: 10px 0 26px;
+				color: #edf0e3;
+			}
+			.card {
+				background: #151a13;
+				border: 1px solid #2a311f;
+				padding: 20px;
+			}
+			.card h3 {
+				font-family: Oswald, sans-serif;
+				font-weight: 600;
+				text-transform: uppercase;
+				letter-spacing: 0.05em;
+				font-size: 19px;
+				margin: 0 0 8px;
+				color: #8ce02a;
+			}
+			.card p {
+				margin: 0;
+				color: #bcc4ad;
+			}
+			.row {
+				display: grid;
+				grid-template-columns: 40px 1fr 68px 68px;
+				gap: 8px;
+				padding: 11px 14px;
+				border-bottom: 1px solid #222a1b;
+				align-items: center;
+			}
+			.row .rank {
+				font-family: Oswald, sans-serif;
+				font-weight: 600;
+				font-size: 16px;
+				color: #97a17c;
+			}
+			.row.top .rank {
+				color: #8ce02a;
+			}
+			.row .name {
+				font-size: 16px;
+				color: #e4e7dc;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+			.row .num {
+				text-align: right;
+				font-family: Oswald, sans-serif;
+				font-size: 16px;
+				color: #d6dcc6;
+			}
+			.row .kd {
+				color: #8b9673;
+			}
+			.mono {
+				font-family: 'Saira Stencil One', monospace;
+				letter-spacing: 0.14em;
+				color: #97a17c;
+			}
+			.dot {
+				width: 9px;
+				height: 9px;
+				border-radius: 50%;
+				background: #8ce02a;
+				box-shadow: 0 0 0 3px rgba(140, 224, 42, 0.2);
+				animation: wfpulse 2.4s ease-in-out infinite;
+				flex: none;
+			}
+			.offline .dot {
+				background: #ed4245;
+				box-shadow: 0 0 0 3px rgba(237, 66, 69, 0.2);
+				animation: none;
+			}
+			@keyframes wfpulse {
+				0%,
+				100% {
+					opacity: 1;
+					transform: scale(1);
+				}
+				50% {
+					opacity: 0.35;
+					transform: scale(0.82);
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div
+			style="
+				position: fixed;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				z-index: 50;
+				padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+				background: linear-gradient(to top, rgba(15, 18, 16, 0.98) 60%, rgba(15, 18, 16, 0));
+				display: flex;
+				gap: 12px;
+				align-items: center;
+			"
+		>
+			<a class="btn" href="https://discord.gg/warfrogs" style="flex: 1; padding: 16px 20px"
+				>Join the Discord</a
+			>
+		</div>
+
+		<section style="position: relative; border-bottom: 1px solid #2a311f; background: #0f1210">
+			<div
+				style="
+					position: relative;
+					min-height: clamp(300px, 64vw, 460px);
+					display: flex;
+					flex-direction: column;
+					justify-content: space-between;
+					background-color: #1a2416;
+					background-image: url('/assets/warfrogs-banner.png');
+					background-size: cover;
+					background-position: 56% center;
+				"
+			>
+				<div
+					style="
+						position: absolute;
+						inset: 0;
+						background: linear-gradient(
+							180deg,
+							rgba(15, 18, 16, 0.62) 0%,
+							rgba(15, 18, 16, 0.28) 38%,
+							rgba(15, 18, 16, 0.86) 82%,
+							#0f1210 100%
+						);
+					"
+				></div>
+				<div
+					style="
+						position: relative;
+						display: flex;
+						justify-content: space-between;
+						align-items: flex-start;
+						gap: 12px;
+						flex-wrap: wrap;
+						padding: 16px 20px;
+					"
+				>
+					<img
+						src="/assets/warfrogs-emblem.png"
+						alt="Warfrogs emblem"
+						width="72"
+						height="72"
+						style="width: clamp(56px, 14vw, 84px); height: auto; display: block"
+					/>
+					<div
+						id="pill"
+						style="
+							display: inline-flex;
+							align-items: center;
+							gap: 9px;
+							border: 1px solid #3c4629;
+							background: rgba(12, 15, 11, 0.88);
+							padding: 7px 12px 7px 10px;
+							border-radius: 999px;
+						"
+					>
+						<span class="dot"></span>
+						<span
+							id="pill-text"
+							style="
+								font-family: Oswald, sans-serif;
+								font-size: 13px;
+								letter-spacing: 0.09em;
+								text-transform: uppercase;
+								color: #d6dcc6;
+							"
+							>Checking server</span
+						>
+					</div>
+				</div>
+				<div style="position: relative; padding: 0 20px 18px">
+					<div
+						style="
+							font-family: 'Saira Stencil One', Oswald, sans-serif;
+							font-size: 12px;
+							letter-spacing: 0.22em;
+							color: #93a86a;
+							text-transform: uppercase;
+						"
+					>
+						thewarfrogs.com
+					</div>
+				</div>
+			</div>
+
+			<div style="padding: 4px 20px 44px">
+				<h1
+					style="
+						position: absolute;
+						width: 1px;
+						height: 1px;
+						overflow: hidden;
+						clip: rect(0 0 0 0);
+						margin: -1px;
+					"
+				>
+					Warfrogs
+				</h1>
+				<div style="height: 4px; width: 96px; background: #8ce02a"></div>
+				<p
+					style="
+						margin: 18px 0 0;
+						max-width: 46ch;
+						font-size: clamp(17px, 4.4vw, 21px);
+						color: #c3cbb4;
+					"
+				>
+					EU hardcore infantry. No HUD, no killcam, light realism mods.
+					<span id="tagline-max">40</span> slots, one map rotation, people who talk to each other.
+				</p>
+
+				<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px">
+					<a class="btn" href="https://discord.gg/warfrogs" style="flex: 1 1 220px">Join Discord</a>
+					<button type="button" id="copy" class="btn btn-ghost" style="flex: 1 1 220px">
+						Copy server ID
+					</button>
+				</div>
+				<div class="mono" style="margin-top: 14px; font-size: 13px">
+					Server ID <span id="server-id">loading</span>
+				</div>
+			</div>
+		</section>
+
+		<section style="padding: 24px 20px; background: #131711; border-bottom: 1px solid #2a311f">
+			<div
+				style="
+					display: grid;
+					grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+					gap: 10px;
+				"
+			>
+				<div class="stat hot">
+					<div class="label">Players online</div>
+					<div class="value">
+						<span id="stat-players">0</span><small>/<span id="stat-max">0</span></small>
+					</div>
+				</div>
+				<div class="stat">
+					<div class="label">Uptime, 30 days</div>
+					<div class="value"><span id="stat-uptime">&mdash;</span><small>%</small></div>
+				</div>
+				<div class="stat">
+					<div class="label">Current map</div>
+					<div
+						class="value"
+						style="font-size: 26px; line-height: 1.15; margin-top: 8px"
+						id="stat-map"
+					>
+						&mdash;
+					</div>
+					<div class="sub" id="stat-mode">&nbsp;</div>
+				</div>
+				<div class="stat">
+					<div class="label">Average ping</div>
+					<div class="value"><span id="stat-ping">&mdash;</span><small> ms</small></div>
+				</div>
+			</div>
+		</section>
+
+		<section style="padding: 44px 20px; background: #0f1210">
+			<div class="kicker">01 &mdash; Briefing</div>
+			<h2>What this server is</h2>
+			<div
+				style="
+					display: grid;
+					grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+					gap: 14px;
+				"
+			>
+				<div class="card">
+					<h3>The rules</h3>
+					<p>
+						No team killing, no racism, no cheats. Mics are not required but listening is. Admins
+						are on most evenings and will remove you without a debate.
+					</p>
+				</div>
+				<div class="card">
+					<h3>How it plays</h3>
+					<p>
+						Hardcore settings: no HUD markers, no killcam, friendly fire on. Rounds run 45 minutes.
+						Squads hold ground rather than chase kills, so pace is slower than public servers.
+					</p>
+				</div>
+				<div class="card">
+					<h3>Who it's for</h3>
+					<p>
+						Adults in EU timezones who want the same twenty faces every week. Solo players are fine
+						&mdash; you'll get put in a squad. New players are fine too.
+					</p>
+				</div>
+				<div class="card">
+					<h3>Mods</h3>
+					<p>
+						Three light mods: ballistics, medical, and a sound pack. About 1.2 GB. The Discord has a
+						one-click collection link and someone will help if it breaks.
+					</p>
+				</div>
+			</div>
+		</section>
+
+		<section
+			style="
+				padding: 44px 20px;
+				background: #131711;
+				border-top: 1px solid #2a311f;
+				border-bottom: 1px solid #2a311f;
+			"
+		>
+			<div class="kicker">02 &mdash; Standings</div>
+			<div
+				style="
+					display: flex;
+					justify-content: space-between;
+					align-items: baseline;
+					gap: 12px;
+					flex-wrap: wrap;
+					margin: 10px 0 18px;
+				"
+			>
+				<h2 style="margin: 0">Top 10 this month</h2>
+				<span style="font-size: 14px; color: #97a17c">Resets 1st of each month</span>
+			</div>
+			<div style="border: 1px solid #2e3623; background: #181d16">
+				<div
+					style="
+						display: grid;
+						grid-template-columns: 40px 1fr 68px 68px;
+						gap: 8px;
+						padding: 10px 14px;
+						border-bottom: 1px solid #2e3623;
+						font-family: Oswald, sans-serif;
+						font-size: 12px;
+						letter-spacing: 0.14em;
+						text-transform: uppercase;
+						color: #97a17c;
+					"
+				>
+					<div>#</div>
+					<div>Player</div>
+					<div style="text-align: right">Kills</div>
+					<div style="text-align: right">K/D</div>
+				</div>
+				<div id="leaders">
+					<div style="padding: 14px; color: #8b9673">No kills recorded yet this month.</div>
+				</div>
+			</div>
+		</section>
+
+		<section
+			style="
+				padding: 52px 20px;
+				background:
+					radial-gradient(90% 120% at 50% 0%, rgba(86, 102, 58, 0.3), transparent 65%),
+					repeating-linear-gradient(115deg, rgba(58, 46, 34, 0.35) 0 2px, transparent 2px 9px),
+					#14180f;
+				text-align: center;
+				border-bottom: 1px solid #2a311f;
+			"
+		>
+			<img
+				src="/assets/warfrogs-emblem.png"
+				alt="Warfrogs emblem"
+				width="80"
+				height="80"
+				style="width: 80px; height: auto; display: block; margin: 0 auto 14px"
+			/>
+			<div
+				style="
+					font-family: Oswald, sans-serif;
+					font-size: 13px;
+					letter-spacing: 0.18em;
+					text-transform: uppercase;
+					color: #a3b878;
+				"
+			>
+				discord.gg/warfrogs
+			</div>
+			<h2
+				style="
+					font-weight: 700;
+					font-size: clamp(30px, 8vw, 52px);
+					line-height: 1;
+					margin: 12px auto 10px;
+					max-width: 16ch;
+				"
+			>
+				Everything happens in the Discord
+			</h2>
+			<p style="margin: 0 auto; max-width: 42ch; color: #bcc4ad">
+				Server status, mod links, event pings, and the people you'll be playing with.
+				<strong id="discord-members" style="color: #edf0e3; font-weight: 600"></strong
+				><span id="discord-online"></span>
+			</p>
+			<a
+				class="btn"
+				href="https://discord.gg/warfrogs"
+				style="
+					font-weight: 700;
+					font-size: 20px;
+					padding: 18px 34px;
+					margin-top: 26px;
+					min-height: 60px;
+				"
+				>Join Discord</a
+			>
+		</section>
+
+		<footer
+			style="
+				padding: 26px 20px 34px;
+				background: #0f1210;
+				display: flex;
+				flex-wrap: wrap;
+				gap: 10px 24px;
+				justify-content: space-between;
+				align-items: center;
+			"
+		>
+			<span class="mono" id="footer-id" style="font-size: 13px; letter-spacing: 0.12em"></span>
+			<a
+				href="https://discord.gg/warfrogs"
+				style="
+					font-family: Oswald, sans-serif;
+					font-size: 14px;
+					letter-spacing: 0.1em;
+					text-transform: uppercase;
+				"
+				>discord.gg/warfrogs</a
+			>
+		</footer>
+
+		<script>
+			(function () {
+				var $ = function (id) {
+					return document.getElementById(id);
+				};
+				var serverId = '';
+				var text = function (id, value) {
+					$(id).textContent = value;
+				};
+
+				function render(d) {
+					serverId = d.serverId || '';
+					text('server-id', serverId || 'unavailable');
+					text('footer-id', serverId ? 'Server ID ' + serverId : '');
+					$('copy').disabled = !serverId;
+					var pill = $('pill');
+					if (d.online) {
+						pill.classList.remove('offline');
+						text('pill-text', d.players.current + '/' + d.players.max + ' players online');
+					} else {
+						pill.classList.add('offline');
+						text('pill-text', 'Server offline');
+					}
+					text('stat-players', String(d.players.current));
+					text('stat-max', String(d.players.max));
+					if (d.players.max) text('tagline-max', String(d.players.max));
+					text('stat-uptime', d.uptimePercent === null ? '—' : d.uptimePercent.toFixed(1));
+					text('stat-map', d.online ? d.map || 'unknown' : 'Offline');
+					text('stat-mode', d.online ? d.mode || ' ' : d.error || ' ');
+					text('stat-ping', d.avgPing === null ? '—' : String(d.avgPing));
+					var box = $('leaders');
+					if (d.leaders.length) {
+						box.innerHTML = '';
+						d.leaders.forEach(function (r) {
+							var row = document.createElement('div');
+							row.className = 'row' + (r.rank <= 3 ? ' top' : '');
+							var cells = [
+								['rank', String(r.rank)],
+								['name', r.name],
+								['num', String(r.kills)],
+								['num kd', r.kd]
+							];
+							cells.forEach(function (c) {
+								var el = document.createElement('div');
+								el.className = c[0];
+								el.textContent = c[1];
+								row.appendChild(el);
+							});
+							box.appendChild(row);
+						});
+					}
+					if (d.discord) {
+						text('discord-members', d.discord.members.toLocaleString() + ' members');
+						text('discord-online', ', ' + d.discord.online.toLocaleString() + ' online right now.');
+					}
+				}
+
+				function load() {
+					fetch('/api/site', { cache: 'no-store' })
+						.then(function (r) {
+							return r.json();
+						})
+						.then(render)
+						.catch(function () {});
+				}
+
+				$('copy').addEventListener('click', function () {
+					if (!serverId || !navigator.clipboard) return;
+					navigator.clipboard.writeText(serverId).then(function () {
+						text('copy', 'Copied');
+						setTimeout(function () {
+							text('copy', 'Copy server ID');
+						}, 1800);
+					});
+				});
+
+				load();
+				setInterval(load, 30000);
+			})();
+		</script>
+	</body>
+</html>

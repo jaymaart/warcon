@@ -9,6 +9,8 @@ export interface Config {
 	/** live server cards go here; off when unset */
 	statusChannelId: string | null;
 	statusRefreshSeconds: number;
+	/** invite code whose member counts the site shows */
+	discordInvite: string;
 	servers: GameServer[];
 	dataDir: string;
 	pollSeconds: number;
@@ -42,6 +44,7 @@ export function loadConfig(env: Env = process.env): Config {
 		leaderboardChannelId: (env.DISCORD_LEADERBOARD_CHANNEL_ID ?? '').trim() || eventsChannelId,
 		statusChannelId: (env.DISCORD_STATUS_CHANNEL_ID ?? '').trim() || null,
 		statusRefreshSeconds: positiveInt(env.STATUS_REFRESH_SECONDS, 60),
+		discordInvite: (env.DISCORD_INVITE ?? '').trim() || 'warfrogs',
 		servers: parseServers(env),
 		dataDir: (env.DATA_DIR ?? '').trim() || './data',
 		pollSeconds: positiveInt(env.POLL_SECONDS, 10),

@@ -19,6 +19,15 @@ HTTP API the Warcon panel uses) and posts to a channel:
 
 Bun, SQLite on a volume, no other dependencies. Periods are UTC, weeks start on Monday.
 
+## Landing page
+
+The bot also serves a landing page at `/` (source in `site/`): live player count, current map,
+average ping, 30-day uptime (share of reachable polls), the monthly top 10 by kills, the server
+join code with a copy button, and the Discord's member counts from its public invite. The page
+polls `GET /api/site` every 30 seconds; that document is public and read-only. Put a custom
+domain on the Railway service to host it at your own address. Replace `site/assets/*.png` to
+change the artwork.
+
 ## Discord setup
 
 1. [Developer Portal](https://discord.com/developers/applications) → New Application.
@@ -46,6 +55,7 @@ a **volume** mounted at `/data`, a public domain, and these variables:
 | `DISCORD_LEADERBOARD_CHANNEL_ID` | no       | Channel for the leaderboard message (default: the events channel).                         |
 | `DISCORD_STATUS_CHANNEL_ID`      | no       | Channel for a live card per server (map, players, scores). Off when unset.                 |
 | `STATUS_REFRESH_SECONDS`         | no       | How often the server cards are re-rendered (default 60).                                   |
+| `DISCORD_INVITE`                 | no       | Invite code whose member counts the landing page shows (default `warfrogs`).               |
 | `GAME_URL` + `GAME_PASSWORD`     | yes*     | One server: `http://host:7776` and its RCON password. `GAME_NAME` labels it.               |
 | `GAME_SERVERS`                   | yes*     | Several: `[{"name":"EU #1","url":"http://h:7776","password":"..."}]` (replaces the above). |
 | `GAME_TLS_INSECURE`              | no       | `true` accepts a self-signed certificate on an https listener.                             |

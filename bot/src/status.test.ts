@@ -6,6 +6,8 @@ const now = new Date('2026-09-16T15:30:00Z');
 const status: Status = {
 	serverName: 'WD #1',
 	map: 'Bakurani',
+	experiences: [],
+	lighting: '',
 	matchSeconds: 3900,
 	playerCount: 12,
 	maxPlayers: 98,
