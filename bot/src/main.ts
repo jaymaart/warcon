@@ -98,6 +98,13 @@ async function pollAudit(w: Watched, serverName: string): Promise<void> {
 	}
 }
 
+/** "type 3 lb:daily" for the log line; never the payload itself. */
+function summarize(payload: unknown): string {
+	const p = payload as { type?: unknown; data?: { custom_id?: unknown } } | null;
+	const id = typeof p?.data?.custom_id === 'string' ? ` ${p.data.custom_id}` : '';
+	return `type ${String(p?.type)}${id}`;
+}
+
 const isPeriod = (v: string | null): v is Period =>
 	(PERIODS as readonly string[]).includes(v ?? '');
 
@@ -179,14 +186,21 @@ const server = Bun.serve({
 				req.headers.get('x-signature-timestamp') ?? '',
 				body
 			);
-			if (!valid) return new Response('invalid request signature', { status: 401 });
+			if (!valid) {
+				log('interaction rejected: bad signature');
+				return new Response('invalid request signature', { status: 401 });
+			}
 			let payload: unknown;
 			try {
 				payload = JSON.parse(body);
 			} catch {
+				log('interaction rejected: bad json');
 				return new Response('bad json', { status: 400 });
 			}
 			const answer = handleInteraction(payload, render);
+			log(
+				`interaction ${summarize(payload)}: ${answer ? `answered type ${answer.type}` : 'unknown'}`
+			);
 			return answer ? Response.json(answer) : new Response('unknown interaction', { status: 400 });
 		}
 		return new Response('not found', { status: 404 });
