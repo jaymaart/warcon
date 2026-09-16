@@ -83,6 +83,7 @@ async function poll(w: Watched): Promise<void> {
 		w.players = players.length;
 		w.lastPlayers = players;
 		store.recordPoll(now, w.server.name, true);
+		if (!w.serverId) w.serverId = await w.client.serverId();
 		store.touchPlayers(now, players);
 		store.recordDeltas(now, w.server.name, result.deltas);
 		if (result.matchEnd) {
@@ -149,13 +150,6 @@ async function refreshStatusCards(): Promise<void> {
 	if (!channel) return;
 	for (const w of watched) {
 		const key = `status:${w.server.name}`;
-		if (w.ok && !w.serverId) {
-			try {
-				w.serverId = await w.client.serverId();
-			} catch (err) {
-				log(`${w.server.name}: server id: ${err instanceof Error ? err.message : String(err)}`);
-			}
-		}
 		const body = {
 			embeds: [
 				statusEmbed(
