@@ -20,8 +20,8 @@ describe('toStatus', () => {
 			playerCount: 12,
 			maxPlayers: 98,
 			scores: [
-				{ name: 'Rebels', score: 41 },
-				{ name: 'Army', score: 12 }
+				{ name: 'Rebels', colorHex: '#ff0000', score: 41 },
+				{ name: 'Army', colorHex: '#0000ff', score: 12 }
 			]
 		});
 	});

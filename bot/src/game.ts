@@ -12,6 +12,8 @@ export interface GameServer {
 
 export interface FactionScore {
 	name: string;
+	/** the faction's colour as the server reports it, e.g. #D86060; '' when absent */
+	colorHex: string;
 	score: number;
 }
 
@@ -70,7 +72,7 @@ export function toStatus(doc: unknown): Status {
 		maxPlayers: num(players.max) ?? 0,
 		scores: list(s.factionScores).map((f) => {
 			const r = rec(f);
-			return { name: str(r.name), score: num(r.score) ?? 0 };
+			return { name: str(r.name), colorHex: str(r.colorHex), score: num(r.score) ?? 0 };
 		})
 	};
 }

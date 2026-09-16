@@ -3,6 +3,7 @@
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { newEntries, parseModeration, type AuditCursor } from './audit';
+import { factionColor } from './colors';
 import { Discord, DiscordError, handleInteraction, verifyInteraction, type Embed } from './discord';
 import { loadConfig } from './env';
 import { matchEndEmbed, moderationEmbed } from './events';
@@ -52,6 +53,13 @@ function readCursor(name: string): AuditCursor | null {
 	}
 }
 
+/** The stored player with their faction's colour from this server's latest status. */
+function taggedPlayer(w: Watched, steamId: string): { name: string; colorHex: string } | null {
+	const p = store.player(steamId);
+	if (!p) return null;
+	return { name: p.name, colorHex: factionColor(w.snapshot?.scores ?? [], p.faction) };
+}
+
 const log = (msg: string): void => console.log(`[bot] ${new Date().toISOString()} ${msg}`);
 
 async function poll(w: Watched): Promise<void> {
@@ -93,7 +101,7 @@ async function pollAudit(w: Watched, serverName: string): Promise<void> {
 		if (!ev) continue;
 		log(`${w.server.name}: ${ev.kind} ${ev.steamId} ${ev.reason}`);
 		await discord.createMessage(cfg.eventsChannelId, {
-			embeds: [moderationEmbed(serverName, ev, store.playerName(ev.steamId))]
+			embeds: [moderationEmbed(serverName, ev, taggedPlayer(w, ev.steamId))]
 		});
 	}
 }

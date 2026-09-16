@@ -36,18 +36,27 @@ export class Store {
 			.all()
 			.map((c) => c.name);
 		if (!columns.includes('cash')) this.db.exec('ALTER TABLE players ADD COLUMN cash INTEGER');
+		if (!columns.includes('faction')) this.db.exec('ALTER TABLE players ADD COLUMN faction TEXT');
 	}
 
-	/** Latest name and cash balance per player; a call without cash keeps the stored balance. */
-	touchPlayers(at: Date, players: { steamId: string; name: string; cash?: number }[]): void {
-		const upsert = this.db.query<void, [string, string, string, number | null]>(
-			`INSERT INTO players (steam_id, name, last_seen, cash) VALUES (?, ?, ?, ?)
+	/**
+	 * Latest name, faction and cash balance per player; a call without cash or faction keeps the
+	 * stored values.
+	 */
+	touchPlayers(
+		at: Date,
+		players: { steamId: string; name: string; cash?: number; faction?: string | null }[]
+	): void {
+		const upsert = this.db.query<void, [string, string, string, number | null, string | null]>(
+			`INSERT INTO players (steam_id, name, last_seen, cash, faction) VALUES (?, ?, ?, ?, ?)
 			 ON CONFLICT (steam_id) DO UPDATE SET name = excluded.name, last_seen = excluded.last_seen,
-			   cash = COALESCE(excluded.cash, players.cash)`
+			   cash = COALESCE(excluded.cash, players.cash),
+			   faction = COALESCE(excluded.faction, players.faction)`
 		);
 		const iso = at.toISOString();
 		this.db.transaction(() => {
-			for (const p of players) if (p.name) upsert.run(p.steamId, p.name, iso, p.cash ?? null);
+			for (const p of players)
+				if (p.name) upsert.run(p.steamId, p.name, iso, p.cash ?? null, p.faction ?? null);
 		})();
 	}
 
@@ -88,11 +97,12 @@ export class Store {
 			.all(since ? since.toISOString() : null, since ? since.toISOString() : null, limit);
 	}
 
-	playerName(steamId: string): string | null {
-		const row = this.db
-			.query<{ name: string }, [string]>('SELECT name FROM players WHERE steam_id = ?')
+	player(steamId: string): { name: string; faction: string | null } | null {
+		return this.db
+			.query<{ name: string; faction: string | null }, [string]>(
+				'SELECT name, faction FROM players WHERE steam_id = ?'
+			)
 			.get(steamId);
-		return row ? row.name : null;
 	}
 
 	getState(key: string): string | null {

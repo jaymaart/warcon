@@ -9,8 +9,8 @@ const status = (over: Partial<Status> = {}): Status => ({
 	playerCount: 2,
 	maxPlayers: 98,
 	scores: [
-		{ name: 'Rebels', score: 40 },
-		{ name: 'Army', score: 25 }
+		{ name: 'Rebels', colorHex: '#D86060', score: 40 },
+		{ name: 'Army', colorHex: '#5B95D8', score: 25 }
 	],
 	...over
 });
@@ -59,7 +59,11 @@ describe('observe', () => {
 		const first = observe(null, status(), [player('1', 5)]).snapshot;
 		const { result } = observe(
 			first,
-			status({ map: 'Kavkazi', matchSeconds: 5, scores: [{ name: 'Rebels', score: 0 }] }),
+			status({
+				map: 'Kavkazi',
+				matchSeconds: 5,
+				scores: [{ name: 'Rebels', colorHex: '#D86060', score: 0 }]
+			}),
 			[player('1', 0)]
 		);
 		expect(result.newMatch).toBe(true);
@@ -67,8 +71,8 @@ describe('observe', () => {
 			map: 'Bakurani',
 			winner: 'Rebels',
 			scores: [
-				{ name: 'Rebels', score: 40 },
-				{ name: 'Army', score: 25 }
+				{ name: 'Rebels', colorHex: '#D86060', score: 40 },
+				{ name: 'Army', colorHex: '#5B95D8', score: 25 }
 			],
 			durationSeconds: 600
 		});
@@ -84,8 +88,8 @@ describe('observe', () => {
 	test('a tie has no winner', () => {
 		const tied = status({
 			scores: [
-				{ name: 'A', score: 10 },
-				{ name: 'B', score: 10 }
+				{ name: 'A', colorHex: '', score: 10 },
+				{ name: 'B', colorHex: '', score: 10 }
 			]
 		});
 		const first = observe(null, tied, []).snapshot;

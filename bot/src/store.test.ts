@@ -60,9 +60,11 @@ describe('Store', () => {
 
 	test('player names resolve for moderation events', () => {
 		const store = new Store(':memory:');
+		store.touchPlayers(new Date(), [{ steamId: '7', name: 'Seven', faction: 'Army' }]);
+		expect(store.player('7')).toEqual({ name: 'Seven', faction: 'Army' });
 		store.touchPlayers(new Date(), [{ steamId: '7', name: 'Seven' }]);
-		expect(store.playerName('7')).toBe('Seven');
-		expect(store.playerName('8')).toBeNull();
+		expect(store.player('7')).toEqual({ name: 'Seven', faction: 'Army' });
+		expect(store.player('8')).toBeNull();
 		store.close();
 	});
 
