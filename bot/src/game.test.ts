@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { toAudit, toPlayers, toStatus } from './game';
+import { toAudit, toPlayers, toServerId, toStatus } from './game';
 
 describe('toStatus', () => {
 	test('reads the live status document', () => {
@@ -60,6 +60,16 @@ describe('toPlayers', () => {
 	test('drops entries without a steam id', () => {
 		expect(toPlayers({ players: [{ name: 'x' }, 5, null] })).toEqual([]);
 		expect(toPlayers(undefined)).toEqual([]);
+	});
+});
+
+describe('toServerId', () => {
+	test('reads the join code and tolerates its absence', () => {
+		expect(toServerId({ serverId: 'd4dd049b-27c1-4202-bf8d-ebeccd06a463' })).toBe(
+			'd4dd049b-27c1-4202-bf8d-ebeccd06a463'
+		);
+		expect(toServerId({})).toBe('');
+		expect(toServerId(null)).toBe('');
 	});
 });
 

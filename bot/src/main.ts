@@ -30,6 +30,8 @@ interface Watched {
 	snapshot: Snapshot | null;
 	/** the last status document read; null until the first successful poll */
 	status: Status | null;
+	/** the join code from GET /v1/server-id; '' until read */
+	serverId: string;
 	cursor: AuditCursor | null;
 	ok: boolean;
 	error: string;
@@ -41,6 +43,7 @@ const watched: Watched[] = cfg.servers.map((server) => ({
 	client: new GameClient(server),
 	snapshot: null,
 	status: null,
+	serverId: '',
 	cursor: readCursor(server.name),
 	ok: false,
 	error: 'not polled yet',
@@ -139,10 +142,22 @@ async function refreshStatusCards(): Promise<void> {
 	if (!channel) return;
 	for (const w of watched) {
 		const key = `status:${w.server.name}`;
+		if (w.ok && !w.serverId) {
+			try {
+				w.serverId = await w.client.serverId();
+			} catch (err) {
+				log(`${w.server.name}: server id: ${err instanceof Error ? err.message : String(err)}`);
+			}
+		}
 		const body = {
 			embeds: [
 				statusEmbed(
-					{ name: w.server.name, status: w.ok ? w.status : null, error: w.error },
+					{
+						name: w.server.name,
+						status: w.ok ? w.status : null,
+						error: w.error,
+						serverId: w.serverId
+					},
 					new Date(),
 					cfg.statusRefreshSeconds
 				)

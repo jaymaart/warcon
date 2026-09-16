@@ -97,6 +97,11 @@ export function toPlayers(doc: unknown): Player[] {
 	return out;
 }
 
+/** The join code from GET /v1/server-id; '' when the document has none. */
+export function toServerId(doc: unknown): string {
+	return id(rec(doc).serverId) ?? '';
+}
+
 export function toAudit(doc: unknown): AuditEntry[] {
 	const out: AuditEntry[] = [];
 	for (const e of list(rec(doc).entries)) {
@@ -153,4 +158,13 @@ export class GameClient {
 	players = async (): Promise<Player[]> => toPlayers(await this.get('/v1/players'));
 	audit = async (limit = 200): Promise<AuditEntry[]> =>
 		toAudit(await this.get(`/v1/audit?limit=${limit}`));
+	/** '' when this server build does not serve the route (older than CL-501228). */
+	serverId = async (): Promise<string> => {
+		try {
+			return toServerId(await this.get('/v1/server-id'));
+		} catch (err) {
+			if (err instanceof GameError && err.status === 404) return '';
+			throw err;
+		}
+	};
 }

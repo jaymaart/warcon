@@ -19,6 +19,8 @@ export interface ServerCard {
 	name: string;
 	status: Status | null;
 	error: string;
+	/** the join code from GET /v1/server-id; '' when unknown */
+	serverId: string;
 }
 
 export function statusEmbed(card: ServerCard, now: Date, refreshSeconds: number): Embed {
@@ -41,11 +43,15 @@ export function statusEmbed(card: ServerCard, now: Date, refreshSeconds: number)
 		const square = colorSquare(f.colorHex);
 		return `${square ? `${square} ` : ''}${escape(f.name)} **${f.score}**`;
 	});
+	const fields = card.serverId
+		? [{ name: 'Server ID', value: `\`${card.serverId}\``, inline: false }]
+		: [];
 	return {
 		title: escape(s.serverName || card.name),
 		description: `**${s.playerCount} / ${s.maxPlayers}** players on **${escape(s.map || 'unknown map')}**`,
 		color: leader && !tie ? (hexToInt(leader.colorHex) ?? COLORS.idle) : COLORS.idle,
 		fields: [
+			...fields,
 			{ name: 'Scores', value: scores.join('\n') || 'none', inline: false },
 			{ name: 'Match time', value: clock(s.matchSeconds), inline: true },
 			{ name: 'Score cap', value: s.scoreCap === null ? 'none' : String(s.scoreCap), inline: true }
