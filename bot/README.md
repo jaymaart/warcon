@@ -6,8 +6,9 @@ HTTP API the Warcon panel uses) and posts to a channel:
 - **Match results**: when the map changes or the match restarts, which faction won and the score.
 - **Kicks, bans and unbans** from the listener's audit log, with the reason, whoever issued them
   (Warcon, the in-game console, any other tool).
-- **A leaderboard message** with Today / This week / This month / All time buttons: top players by
-  kills, with deaths and K/D. Kills are counted from the per-player totals the server reports;
+- **A leaderboard message** showing today's top players by kills, with deaths and K/D, refreshed on
+  a schedule. Its Today / This week / This month / All time buttons reply privately (only the
+  clicker sees it) with that period, so the message itself never changes. Kills are counted from the per-player totals the server reports;
   the API exposes no weapon or vehicle detail, so there is no per-weapon split.
 
 Bun, SQLite on a volume, no other dependencies. Periods are UTC, weeks start on Monday.

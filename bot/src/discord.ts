@@ -131,13 +131,19 @@ export async function verifyInteraction(
 	}
 }
 
-export type InteractionResponse =
-	{ type: 1 } | { type: 7; data: { embeds: Embed[]; components: ActionRow[] } };
+/** Discord message flag: only the person who clicked sees the reply. */
+const EPHEMERAL = 64;
 
-/** PING gets PONG; a leaderboard button edits the message in place. Anything else: null (400). */
+export type InteractionResponse =
+	{ type: 1 } | { type: 4; data: { embeds: Embed[]; flags: number } };
+
+/**
+ * PING gets PONG; a leaderboard button gets an ephemeral reply with that period, leaving the
+ * message itself unchanged. Anything else: null (400).
+ */
 export function handleInteraction(
 	payload: unknown,
-	render: (period: Period) => { embeds: Embed[]; components: ActionRow[] }
+	render: (period: Period) => Embed
 ): InteractionResponse | null {
 	if (payload === null || typeof payload !== 'object') return null;
 	const p = payload as { type?: unknown; data?: { custom_id?: unknown } };
@@ -145,5 +151,5 @@ export function handleInteraction(
 	if (p.type !== 3) return null;
 	const period = typeof p.data?.custom_id === 'string' ? parsePeriod(p.data.custom_id) : null;
 	if (!period) return null;
-	return { type: 7, data: render(period) };
+	return { type: 4, data: { embeds: [render(period)], flags: EPHEMERAL } };
 }

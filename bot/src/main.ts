@@ -3,17 +3,11 @@
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { newEntries, parseModeration, type AuditCursor } from './audit';
-import { Discord, DiscordError, handleInteraction, verifyInteraction } from './discord';
+import { Discord, DiscordError, handleInteraction, verifyInteraction, type Embed } from './discord';
 import { loadConfig } from './env';
 import { matchEndEmbed, moderationEmbed } from './events';
 import { GameClient, type GameServer } from './game';
-import {
-	leaderboardComponents,
-	leaderboardEmbed,
-	periodStart,
-	PERIODS,
-	type Period
-} from './leaderboard';
+import { leaderboardComponents, leaderboardEmbed, periodStart, type Period } from './leaderboard';
 import { Store } from './store';
 import { observe, type Snapshot } from './tracker';
 
@@ -105,35 +99,29 @@ function summarize(payload: unknown): string {
 	return `type ${String(p?.type)}${id}`;
 }
 
-const isPeriod = (v: string | null): v is Period =>
-	(PERIODS as readonly string[]).includes(v ?? '');
+/** The standing message always shows today; buttons answer privately with any period. */
+const MAIN_PERIOD: Period = 'daily';
 
-function render(period: Period): ReturnType<typeof renderNow> {
-	store.setState('lb:period', period);
-	return renderNow(period);
-}
-
-function renderNow(period: Period) {
+function leaderboardFor(period: Period, refreshSeconds: number | null): Embed {
 	const now = new Date();
-	return {
-		embeds: [
-			leaderboardEmbed(
-				period,
-				store.leaderboard(periodStart(period, now), cfg.leaderboardSize),
-				now,
-				cfg.leaderboardRefreshSeconds
-			)
-		],
-		components: leaderboardComponents(period)
-	};
+	return leaderboardEmbed(
+		period,
+		store.leaderboard(periodStart(period, now), cfg.leaderboardSize),
+		now,
+		refreshSeconds
+	);
 }
+
+const render = (period: Period): Embed => leaderboardFor(period, null);
 
 let refreshing: Promise<void> | null = null;
 function refreshLeaderboard(): Promise<void> {
 	if (refreshing) return refreshing;
 	refreshing = (async () => {
-		const saved = store.getState('lb:period');
-		const body = renderNow(isPeriod(saved) ? saved : 'all');
+		const body = {
+			embeds: [leaderboardFor(MAIN_PERIOD, cfg.leaderboardRefreshSeconds)],
+			components: leaderboardComponents(MAIN_PERIOD)
+		};
 		const id = store.getState('lb:message');
 		try {
 			if (id) {

@@ -56,19 +56,22 @@ export function leaderboardEmbed(
 	period: Period,
 	rows: Row[],
 	now: Date,
-	refreshSeconds: number
+	/** shown in the footer of the standing message; null for a one-off reply */
+	refreshSeconds: number | null
 ): Embed {
 	const start = periodStart(period, now);
 	const lines = rows.map(
 		(r, i) =>
 			`**${i + 1}.** ${escape(r.name || r.steamId)} · ${r.kills} kills · ${r.deaths} deaths · K/D ${kd(r.kills, r.deaths)}`
 	);
-	const since = start ? ` · Since ${start.toISOString().slice(0, 10)} UTC` : '';
+	const since = start ? `Since ${start.toISOString().slice(0, 10)} UTC` : 'All time';
+	const footer =
+		refreshSeconds === null ? since : `Updates every ${every(refreshSeconds)} · ${since}`;
 	return {
 		title: `Leaderboard · ${LABELS[period]}`,
 		description: lines.length ? lines.join('\n') : 'No kills recorded yet.',
 		color: 0xd9a441,
-		footer: { text: `Updates every ${every(refreshSeconds)}${since}` },
+		footer: { text: footer },
 		timestamp: now.toISOString()
 	};
 }

@@ -30,19 +30,16 @@ describe('verifyInteraction', () => {
 });
 
 describe('handleInteraction', () => {
-	const render = (period: string) => ({
-		embeds: [{ title: `Leaderboard ${period}` }],
-		components: []
-	});
+	const render = (period: string) => ({ title: `Leaderboard ${period}` });
 
 	test('answers a ping with a pong', () => {
 		expect(handleInteraction({ type: 1 }, render)).toEqual({ type: 1 });
 	});
 
-	test('a leaderboard button updates the message', () => {
+	test('a leaderboard button gets an ephemeral reply', () => {
 		expect(
 			handleInteraction({ type: 3, data: { custom_id: 'lb:weekly', component_type: 2 } }, render)
-		).toEqual({ type: 7, data: { embeds: [{ title: 'Leaderboard weekly' }], components: [] } });
+		).toEqual({ type: 4, data: { embeds: [{ title: 'Leaderboard weekly' }], flags: 64 } });
 	});
 
 	test('anything else is refused', () => {

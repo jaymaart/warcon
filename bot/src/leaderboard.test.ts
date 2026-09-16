@@ -61,7 +61,12 @@ describe('leaderboardEmbed', () => {
 		const embed = leaderboardEmbed('all', [], now, 3600);
 		expect(embed.title).toBe('Leaderboard · All time');
 		expect(embed.description).toBe('No kills recorded yet.');
-		expect(embed.footer?.text).toBe('Updates every 1 h');
+		expect(embed.footer?.text).toBe('Updates every 1 h · All time');
+	});
+
+	test('a one-off reply has no refresh note', () => {
+		expect(leaderboardEmbed('daily', [], now, null).footer?.text).toBe('Since 2026-09-16 UTC');
+		expect(leaderboardEmbed('all', [], now, null).footer?.text).toBe('All time');
 	});
 });
 
