@@ -44,13 +44,13 @@ describe('toPlayers', () => {
 		expect(
 			toPlayers({
 				players: [
-					{ steamId: 4242, name: 'Alpha', faction: 'Rebels', kills: 3, deaths: 1 },
+					{ steamId: 4242, name: 'Alpha', faction: 'Rebels', kills: 3, deaths: 1, cash: 2500 },
 					{ steamId: '2', name: 'Bravo', faction: null }
 				]
 			})
 		).toEqual([
-			{ steamId: '4242', name: 'Alpha', faction: 'Rebels', kills: 3, deaths: 1 },
-			{ steamId: '2', name: 'Bravo', faction: null, kills: 0, deaths: 0 }
+			{ steamId: '4242', name: 'Alpha', faction: 'Rebels', kills: 3, deaths: 1, cash: 2500 },
+			{ steamId: '2', name: 'Bravo', faction: null, kills: 0, deaths: 0, cash: 0 }
 		]);
 	});
 

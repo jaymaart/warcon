@@ -76,6 +76,28 @@ export function leaderboardEmbed(
 	};
 }
 
+export interface CashRow {
+	steamId: string;
+	name: string;
+	cash: number;
+}
+
+const money = (n: number): string => `$${Math.round(n).toLocaleString('en-US')}`;
+
+/** Richest players by their cash balance as last seen (a balance, so no period). */
+export function richestEmbed(rows: CashRow[], now: Date): Embed {
+	const lines = rows.map(
+		(r, i) => `**${i + 1}.** ${escape(r.name || r.steamId)} · ${money(r.cash)}`
+	);
+	return {
+		title: 'Richest players',
+		description: lines.length ? lines.join('\n') : 'No balances seen yet.',
+		color: 0x3ba55d,
+		footer: { text: 'Cash balance as last seen on the server' },
+		timestamp: now.toISOString()
+	};
+}
+
 export function leaderboardComponents(active: Period): ActionRow[] {
 	return [
 		{

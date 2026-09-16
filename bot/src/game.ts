@@ -30,6 +30,8 @@ export interface Player {
 	faction: string | null;
 	kills: number;
 	deaths: number;
+	/** the player's cash balance (persists across sessions) */
+	cash: number;
 }
 
 export interface AuditEntry {
@@ -84,7 +86,8 @@ export function toPlayers(doc: unknown): Player[] {
 			name: str(r.name),
 			faction: typeof r.faction === 'string' ? r.faction : null,
 			kills: num(r.kills) ?? 0,
-			deaths: num(r.deaths) ?? 0
+			deaths: num(r.deaths) ?? 0,
+			cash: num(r.cash) ?? 0
 		});
 	}
 	return out;

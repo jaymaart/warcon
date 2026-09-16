@@ -40,6 +40,24 @@ describe('Store', () => {
 		store.close();
 	});
 
+	test('richest players rank by the latest balance', () => {
+		const store = new Store(':memory:');
+		const t = new Date();
+		store.touchPlayers(t, [
+			{ steamId: '1', name: 'A', cash: 500 },
+			{ steamId: '2', name: 'B', cash: 9000 },
+			{ steamId: '3', name: 'C', cash: 0 }
+		]);
+		store.touchPlayers(t, [{ steamId: '1', name: 'A', cash: 12000 }]);
+		store.touchPlayers(t, [{ steamId: '2', name: 'B2' }]); // no cash given: balance kept
+		expect(store.richest(10)).toEqual([
+			{ steamId: '1', name: 'A', cash: 12000 },
+			{ steamId: '2', name: 'B2', cash: 9000 }
+		]);
+		expect(store.richest(1)).toHaveLength(1);
+		store.close();
+	});
+
 	test('player names resolve for moderation events', () => {
 		const store = new Store(':memory:');
 		store.touchPlayers(new Date(), [{ steamId: '7', name: 'Seven' }]);

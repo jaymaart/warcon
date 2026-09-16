@@ -1,7 +1,7 @@
 // SQLite (bun:sqlite): kill/death deltas per poll, the latest name per Steam ID, and a small
 // key-value state (audit cursors, the leaderboard message). One file on the volume.
 import { Database } from 'bun:sqlite';
-import type { Row } from './leaderboard';
+import type { CashRow, Row } from './leaderboard';
 import type { StatDelta } from './tracker';
 
 export class Store {
@@ -30,17 +30,35 @@ export class Store {
 				value TEXT NOT NULL
 			);
 		`);
+		// Added after the first release: databases created before it lack the column.
+		const columns = this.db
+			.query<{ name: string }, []>('PRAGMA table_info(players)')
+			.all()
+			.map((c) => c.name);
+		if (!columns.includes('cash')) this.db.exec('ALTER TABLE players ADD COLUMN cash INTEGER');
 	}
 
-	touchPlayers(at: Date, players: { steamId: string; name: string }[]): void {
-		const upsert = this.db.query<void, [string, string, string]>(
-			`INSERT INTO players (steam_id, name, last_seen) VALUES (?, ?, ?)
-			 ON CONFLICT (steam_id) DO UPDATE SET name = excluded.name, last_seen = excluded.last_seen`
+	/** Latest name and cash balance per player; a call without cash keeps the stored balance. */
+	touchPlayers(at: Date, players: { steamId: string; name: string; cash?: number }[]): void {
+		const upsert = this.db.query<void, [string, string, string, number | null]>(
+			`INSERT INTO players (steam_id, name, last_seen, cash) VALUES (?, ?, ?, ?)
+			 ON CONFLICT (steam_id) DO UPDATE SET name = excluded.name, last_seen = excluded.last_seen,
+			   cash = COALESCE(excluded.cash, players.cash)`
 		);
 		const iso = at.toISOString();
 		this.db.transaction(() => {
-			for (const p of players) if (p.name) upsert.run(p.steamId, p.name, iso);
+			for (const p of players) if (p.name) upsert.run(p.steamId, p.name, iso, p.cash ?? null);
 		})();
+	}
+
+	/** Players with the highest cash balance as last seen. */
+	richest(limit: number): CashRow[] {
+		return this.db
+			.query<CashRow, [number]>(
+				`SELECT steam_id AS steamId, name, cash FROM players
+				 WHERE cash > 0 ORDER BY cash DESC, name ASC LIMIT ?`
+			)
+			.all(limit);
 	}
 
 	recordDeltas(at: Date, server: string, deltas: StatDelta[]): void {

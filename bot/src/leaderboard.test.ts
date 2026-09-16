@@ -4,6 +4,7 @@ import {
 	leaderboardEmbed,
 	parsePeriod,
 	periodStart,
+	richestEmbed,
 	type Row
 } from './leaderboard';
 
@@ -67,6 +68,21 @@ describe('leaderboardEmbed', () => {
 	test('a one-off reply has no refresh note', () => {
 		expect(leaderboardEmbed('daily', [], now, null).footer?.text).toBe('Since 2026-09-16 UTC');
 		expect(leaderboardEmbed('all', [], now, null).footer?.text).toBe('All time');
+	});
+});
+
+describe('richestEmbed', () => {
+	test('ranks balances with thousands separators', () => {
+		const embed = richestEmbed(
+			[
+				{ steamId: '1', name: 'Alpha', cash: 1234567 },
+				{ steamId: '2', name: 'Bravo', cash: 999.6 }
+			],
+			now
+		);
+		expect(embed.title).toBe('Richest players');
+		expect(embed.description).toBe('**1.** Alpha · $1,234,567\n**2.** Bravo · $1,000');
+		expect(richestEmbed([], now).description).toBe('No balances seen yet.');
 	});
 });
 

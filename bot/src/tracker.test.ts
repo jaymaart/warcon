@@ -20,7 +20,8 @@ const player = (steamId: string, kills: number, deaths = 0, name = `P${steamId}`
 	name,
 	faction: 'Rebels',
 	kills,
-	deaths
+	deaths,
+	cash: 0
 });
 
 describe('observe', () => {

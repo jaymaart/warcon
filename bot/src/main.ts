@@ -7,7 +7,13 @@ import { Discord, DiscordError, handleInteraction, verifyInteraction, type Embed
 import { loadConfig } from './env';
 import { matchEndEmbed, moderationEmbed } from './events';
 import { GameClient, type GameServer } from './game';
-import { leaderboardComponents, leaderboardEmbed, periodStart, type Period } from './leaderboard';
+import {
+	leaderboardComponents,
+	leaderboardEmbed,
+	periodStart,
+	richestEmbed,
+	type Period
+} from './leaderboard';
 import { Store } from './store';
 import { observe, type Snapshot } from './tracker';
 
@@ -119,7 +125,10 @@ function refreshLeaderboard(): Promise<void> {
 	if (refreshing) return refreshing;
 	refreshing = (async () => {
 		const body = {
-			embeds: [leaderboardFor(MAIN_PERIOD, cfg.leaderboardRefreshSeconds)],
+			embeds: [
+				leaderboardFor(MAIN_PERIOD, cfg.leaderboardRefreshSeconds),
+				richestEmbed(store.richest(cfg.leaderboardSize), new Date())
+			],
 			components: leaderboardComponents(MAIN_PERIOD)
 		};
 		const id = store.getState('lb:message');
