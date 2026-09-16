@@ -120,7 +120,8 @@ function renderNow(period: Period) {
 			leaderboardEmbed(
 				period,
 				store.leaderboard(periodStart(period, now), cfg.leaderboardSize),
-				now
+				now,
+				cfg.leaderboardRefreshSeconds
 			)
 		],
 		components: leaderboardComponents(period)

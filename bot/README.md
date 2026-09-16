@@ -41,7 +41,7 @@ a **volume** mounted at `/data`, a public domain, and these variables:
 | `GAME_SERVERS`                   | yes*     | Several: `[{"name":"EU #1","url":"http://h:7776","password":"..."}]` (replaces the above). |
 | `GAME_TLS_INSECURE`              | no       | `true` accepts a self-signed certificate on an https listener.                             |
 | `POLL_SECONDS`                   | no       | Poll cadence per server (default 10).                                                      |
-| `LEADERBOARD_REFRESH_SECONDS`    | no       | How often the leaderboard message is re-rendered (default 300).                            |
+| `LEADERBOARD_REFRESH_SECONDS`    | no       | How often the leaderboard message is re-rendered (default 900); shown in its footer.       |
 | `LEADERBOARD_SIZE`               | no       | Rows shown, at most 25 (default 10).                                                       |
 | `DATA_DIR`                       | no       | SQLite location (default `/data` in the image).                                            |
 

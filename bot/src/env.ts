@@ -40,7 +40,7 @@ export function loadConfig(env: Env = process.env): Config {
 		servers: parseServers(env),
 		dataDir: (env.DATA_DIR ?? '').trim() || './data',
 		pollSeconds: positiveInt(env.POLL_SECONDS, 10),
-		leaderboardRefreshSeconds: positiveInt(env.LEADERBOARD_REFRESH_SECONDS, 300),
+		leaderboardRefreshSeconds: positiveInt(env.LEADERBOARD_REFRESH_SECONDS, 900),
 		leaderboardSize: Math.min(25, positiveInt(env.LEADERBOARD_SIZE, 10)),
 		port: positiveInt(env.PORT, 3000),
 		apiBase: (env.DISCORD_API_BASE ?? '').trim() || 'https://discord.com/api/v10'

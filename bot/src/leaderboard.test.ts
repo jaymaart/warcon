@@ -46,7 +46,7 @@ describe('leaderboardEmbed', () => {
 	];
 
 	test('ranks players with kills, deaths and K/D', () => {
-		const embed = leaderboardEmbed('weekly', rows, now);
+		const embed = leaderboardEmbed('weekly', rows, now, 900);
 		expect(embed.title).toBe('Leaderboard · This week');
 		expect(embed.description).toContain('**1.** Alpha');
 		expect(embed.description).toContain('30 kills');
@@ -54,14 +54,14 @@ describe('leaderboardEmbed', () => {
 		expect(embed.description).toContain('K/D 3.00');
 		expect(embed.description).toContain('**2.** Bravo');
 		expect(embed.description).toContain('K/D 12.00');
-		expect(embed.footer?.text).toContain('Since 2026-09-14');
+		expect(embed.footer?.text).toBe('Updates every 15 min · Since 2026-09-14 UTC');
 	});
 
 	test('all time footer and empty state', () => {
-		const embed = leaderboardEmbed('all', [], now);
+		const embed = leaderboardEmbed('all', [], now, 3600);
 		expect(embed.title).toBe('Leaderboard · All time');
 		expect(embed.description).toBe('No kills recorded yet.');
-		expect(embed.footer?.text).not.toContain('Since');
+		expect(embed.footer?.text).toBe('Updates every 1 h');
 	});
 });
 

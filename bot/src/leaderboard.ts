@@ -45,7 +45,19 @@ export function parsePeriod(customId: string): Period | null {
 const kd = (kills: number, deaths: number): string =>
 	(deaths === 0 ? kills : kills / deaths).toFixed(2);
 
-export function leaderboardEmbed(period: Period, rows: Row[], now: Date): Embed {
+const every = (seconds: number): string =>
+	seconds % 3600 === 0
+		? `${seconds / 3600} h`
+		: seconds % 60 === 0
+			? `${seconds / 60} min`
+			: `${seconds} s`;
+
+export function leaderboardEmbed(
+	period: Period,
+	rows: Row[],
+	now: Date,
+	refreshSeconds: number
+): Embed {
 	const start = periodStart(period, now);
 	const lines = rows.map(
 		(r, i) =>
@@ -56,7 +68,7 @@ export function leaderboardEmbed(period: Period, rows: Row[], now: Date): Embed 
 		title: `Leaderboard · ${LABELS[period]}`,
 		description: lines.length ? lines.join('\n') : 'No kills recorded yet.',
 		color: 0xd9a441,
-		footer: { text: `Kills from the game servers${since}` },
+		footer: { text: `Updates every ${every(refreshSeconds)}${since}` },
 		timestamp: now.toISOString()
 	};
 }
