@@ -59,21 +59,21 @@ registered globally on startup; the application id is read from the token, or se
 One service from this repository with **Root Directory** `/bot` (the Dockerfile is picked up),
 a **volume** mounted at `/data`, a public domain, and these variables:
 
-| Variable                         | Required | Meaning                                                                                                          |
-| -------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------- |
-| `DISCORD_BOT_TOKEN`              | yes      | Bot token.                                                                                                       |
-| `DISCORD_PUBLIC_KEY`             | yes      | Application public key; verifies button clicks.                                                                  |
-| `DISCORD_EVENTS_CHANNEL_ID`      | yes      | Channel for match results, kicks and bans.                                                                       |
-| `DISCORD_LEADERBOARD_CHANNEL_ID` | no       | Channel for the leaderboard message (default: the events channel).                                               |
-| `DISCORD_INVITE`                 | no       | Invite code whose member counts the landing page shows (default `warfrogs`).                                     |
-| `GAME_URL` + `GAME_PASSWORD`     | yes*     | One server: `http://host:7776` and its RCON password. `GAME_NAME` labels it.                                     |
-| `GAME_SERVERS`                   | yes*     | Several: `[{"name":"EU #1","url":"http://h:7776","password":"..."}]` (replaces the above).                       |
-| `GAME_TLS_INSECURE`              | no       | `true` accepts a self-signed certificate on an https listener.                                                   |
-| `POLL_SECONDS`                   | no       | Poll cadence per server (default 10).                                                                            |
-| `LEADERBOARD_REFRESH_SECONDS`    | no       | The standing messages are re-rendered at least this often (default 900).                                         |
-| `LEADERBOARD_LIVE_SECONDS`       | no       | And within this many seconds of a change in kills, deaths or cash (default 60, minimum 15); shown in the footer. |
-| `LEADERBOARD_SIZE`               | no       | Rows shown, at most 25 (default 10).                                                                             |
-| `DATA_DIR`                       | no       | SQLite location (default `/data` in the image).                                                                  |
+| Variable                         | Required | Meaning                                                                                                           |
+| -------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------- |
+| `DISCORD_BOT_TOKEN`              | yes      | Bot token.                                                                                                        |
+| `DISCORD_PUBLIC_KEY`             | yes      | Application public key; verifies button clicks.                                                                   |
+| `DISCORD_EVENTS_CHANNEL_ID`      | yes      | Channel for match results, kicks and bans.                                                                        |
+| `DISCORD_LEADERBOARD_CHANNEL_ID` | no       | Channel for the leaderboard message (default: the events channel).                                                |
+| `DISCORD_INVITE`                 | no       | Invite code whose member counts the landing page shows (default `warfrogs`).                                      |
+| `GAME_URL` + `GAME_PASSWORD`     | yes*     | One server: `http://host:7776` and its RCON password. `GAME_NAME` labels it.                                      |
+| `GAME_SERVERS`                   | yes*     | Several: `[{"name":"EU #1","url":"http://h:7776","password":"..."}]` (replaces the above).                        |
+| `GAME_TLS_INSECURE`              | no       | `true` accepts a self-signed certificate on an https listener.                                                    |
+| `POLL_SECONDS`                   | no       | Poll cadence per server (default 10).                                                                             |
+| `LEADERBOARD_REFRESH_SECONDS`    | no       | The standing messages are re-rendered at least this often (default 900).                                          |
+| `LEADERBOARD_LIVE_SECONDS`       | no       | And within this many seconds of a change in kills, deaths or cash (default 300, minimum 15); shown in the footer. |
+| `LEADERBOARD_SIZE`               | no       | Rows shown, at most 25 (default 10).                                                                              |
+| `DATA_DIR`                       | no       | SQLite location (default `/data` in the image).                                                                   |
 
 The listener must be reachable from Railway: bind it to a public address on the game host with a
 strong RCON password, or use an https listener. `GET /health` on the bot reports each server's

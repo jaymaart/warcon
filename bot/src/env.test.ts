@@ -15,7 +15,7 @@ describe('loadConfig', () => {
 		]);
 		expect(c.leaderboardChannelId).toBe('123');
 		expect(c.pollSeconds).toBe(10);
-		expect(c.leaderboardLiveSeconds).toBe(60);
+		expect(c.leaderboardLiveSeconds).toBe(300);
 		expect(
 			loadConfig({
 				...base,
