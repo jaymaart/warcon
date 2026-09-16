@@ -6,8 +6,6 @@ HTTP API the Warcon panel uses) and posts to a channel:
 - **Match results**: when the map changes or the match restarts, which faction won and the score.
 - **Kicks, bans and unbans** from the listener's audit log, with the reason, whoever issued them
   (Warcon, the in-game console, any other tool).
-- **A live server card** per server (optional channel): map, players online, match time and the
-  faction scores with their colours, edited in place; red with the error when unreachable.
 - **A leaderboard message** showing today's top players by kills, with deaths and K/D, refreshed on
   a schedule. Its Today / This week / This month / All time buttons reply privately (only the
   clicker sees it) with that period, so the message itself never changes. A second embed in the
@@ -53,8 +51,6 @@ a **volume** mounted at `/data`, a public domain, and these variables:
 | `DISCORD_PUBLIC_KEY`             | yes      | Application public key; verifies button clicks.                                            |
 | `DISCORD_EVENTS_CHANNEL_ID`      | yes      | Channel for match results, kicks and bans.                                                 |
 | `DISCORD_LEADERBOARD_CHANNEL_ID` | no       | Channel for the leaderboard message (default: the events channel).                         |
-| `DISCORD_STATUS_CHANNEL_ID`      | no       | Channel for a live card per server (map, players, scores). Off when unset.                 |
-| `STATUS_REFRESH_SECONDS`         | no       | How often the server cards are re-rendered (default 60).                                   |
 | `DISCORD_INVITE`                 | no       | Invite code whose member counts the landing page shows (default `warfrogs`).               |
 | `GAME_URL` + `GAME_PASSWORD`     | yes*     | One server: `http://host:7776` and its RCON password. `GAME_NAME` labels it.               |
 | `GAME_SERVERS`                   | yes*     | Several: `[{"name":"EU #1","url":"http://h:7776","password":"..."}]` (replaces the above). |

@@ -14,16 +14,6 @@ describe('loadConfig', () => {
 			{ name: 'Server', url: 'http://1.2.3.4:7776', password: 'p', insecureTls: false }
 		]);
 		expect(c.leaderboardChannelId).toBe('123');
-		expect(c.statusChannelId).toBeNull();
-		expect(c.statusRefreshSeconds).toBe(60);
-		expect(
-			loadConfig({
-				...base,
-				GAME_URL: 'http://h:1',
-				GAME_PASSWORD: 'p',
-				DISCORD_STATUS_CHANNEL_ID: '9'
-			}).statusChannelId
-		).toBe('9');
 		expect(c.pollSeconds).toBe(10);
 		expect(c.leaderboardSize).toBe(10);
 		expect(c.dataDir).toBe('./data');

@@ -16,7 +16,6 @@ import {
 	type Period
 } from './leaderboard';
 import { fetchDiscordCounts, sitePayload, type DiscordCounts } from './site';
-import { statusEmbed } from './status';
 import { Store } from './store';
 import { observe, type Snapshot } from './tracker';
 
@@ -143,41 +142,6 @@ function leaderboardFor(period: Period, refreshSeconds: number | null): Embed {
 }
 
 const render = (period: Period): Embed => leaderboardFor(period, null);
-
-/** One card per server in the status channel, created once and edited after that. */
-async function refreshStatusCards(): Promise<void> {
-	const channel = cfg.statusChannelId;
-	if (!channel) return;
-	for (const w of watched) {
-		const key = `status:${w.server.name}`;
-		const body = {
-			embeds: [
-				statusEmbed(
-					{
-						name: w.server.name,
-						status: w.ok ? w.status : null,
-						error: w.error,
-						serverId: w.serverId
-					},
-					new Date(),
-					cfg.statusRefreshSeconds
-				)
-			]
-		};
-		const id = store.getState(key);
-		try {
-			if (id) {
-				await discord.editMessage(channel, id, body);
-				continue;
-			}
-		} catch (err) {
-			if (!(err instanceof DiscordError) || err.status !== 404) throw err;
-			log(`${w.server.name}: status card is gone; posting a new one`);
-		}
-		store.setState(key, await discord.createMessage(channel, body));
-		log(`${w.server.name}: status card posted`);
-	}
-}
 
 let refreshing: Promise<void> | null = null;
 function refreshLeaderboard(): Promise<void> {
@@ -310,12 +274,6 @@ log(`listening on :${server.port}; watching ${watched.map((w) => w.server.name).
 for (const w of watched) void loop(() => poll(w), cfg.pollSeconds * 1000, w.server.name);
 void loop(refreshLeaderboard, cfg.leaderboardRefreshSeconds * 1000, 'leaderboard');
 void loop(refreshDiscordCounts, 600_000, 'discord counts');
-if (cfg.statusChannelId) {
-	// Let the first polls land so the cards open with live data rather than "offline".
-	void Bun.sleep(3000).then(() =>
-		loop(refreshStatusCards, cfg.statusRefreshSeconds * 1000, 'status')
-	);
-}
 
 const shutdown = (): void => {
 	log('shutting down');
