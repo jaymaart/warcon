@@ -1,0 +1,19 @@
+{
+	"name": "warcon-discord-bot",
+	"private": true,
+	"version": "0.1.0",
+	"type": "module",
+	"description": "Discord bot that reports WARDOGS match results, kicks and bans, and keeps a kills leaderboard. Bun + SQLite, one container.",
+	"scripts": {
+		"start": "bun src/main.ts",
+		"test": "bun test",
+		"check": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.4.2",
+		"typescript": "^6.0.3"
+	},
+	"engines": {
+		"bun": ">=1.2"
+	}
+}

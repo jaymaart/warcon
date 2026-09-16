@@ -373,6 +373,12 @@ choose a side after joining, so a whisper on join can land while they are still 
 first poll after a restart or an outage never fires join rules, since everyone present looks like a
 joiner then.
 
+### Discord bot (match results, kicks, bans, leaderboard)
+
+[`bot/`](bot/README.md) is a separate one-container Discord bot that needs no panel or Postgres: it
+polls the same RCON listener, posts match results and kicks/bans (with reasons) from the listener's
+audit log, and keeps a leaderboard message with Today / This week / This month / All time buttons.
+
 ### Discord webhooks
 
 On the organisation's overview an owner can add Discord channel webhooks (in Discord: channel settings →
