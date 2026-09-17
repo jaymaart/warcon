@@ -140,8 +140,12 @@ export type InteractionResponse =
 export interface InteractionHandlers {
 	/** a leaderboard period button */
 	board: (board: Board, period: Period) => Embed;
-	/** a slash command from `discordId` with its string options */
-	command: (name: string, options: Record<string, string>, discordId: string) => Embed;
+	/** a slash command from `discordId` with its string options; ephemeral false posts in the channel */
+	command: (
+		name: string,
+		options: Record<string, string>,
+		discordId: string
+	) => { embed: Embed; ephemeral: boolean };
 }
 
 /**
@@ -160,9 +164,9 @@ export function handleInteraction(
 		user?: { id?: unknown };
 	};
 	if (p.type === 1) return { type: 1 };
-	const reply = (embed: Embed): InteractionResponse => ({
+	const reply = (embed: Embed, ephemeral = true): InteractionResponse => ({
 		type: 4,
-		data: { embeds: [embed], flags: EPHEMERAL }
+		data: { embeds: [embed], flags: ephemeral ? EPHEMERAL : 0 }
 	});
 	if (p.type === 3) {
 		const target = typeof p.data?.custom_id === 'string' ? parseBoard(p.data.custom_id) : null;
@@ -177,7 +181,8 @@ export function handleInteraction(
 			const r = o as { name?: unknown; value?: unknown };
 			if (typeof r.name === 'string' && typeof r.value === 'string') options[r.name] = r.value;
 		}
-		return reply(handlers.command(name, options, id));
+		const r = handlers.command(name, options, id);
+		return reply(r.embed, r.ephemeral);
 	}
 	return null;
 }

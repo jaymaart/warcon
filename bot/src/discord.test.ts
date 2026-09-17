@@ -33,7 +33,8 @@ describe('handleInteraction', () => {
 	const handlers = {
 		board: (board: string, period: string) => ({ title: `${board} ${period}` }),
 		command: (name: string, options: Record<string, string>, id: string) => ({
-			title: `${name} ${id} ${JSON.stringify(options)}`
+			embed: { title: `${name} ${id} ${JSON.stringify(options)}` },
+			ephemeral: name !== 'stats'
 		})
 	};
 
@@ -65,7 +66,7 @@ describe('handleInteraction', () => {
 			handleInteraction({ type: 2, data: { name: 'stats' }, user: { id: '5' } }, handlers)
 		).toEqual({
 			type: 4,
-			data: { embeds: [{ title: 'stats 5 {}' }], flags: 64 }
+			data: { embeds: [{ title: 'stats 5 {}' }], flags: 0 }
 		});
 	});
 

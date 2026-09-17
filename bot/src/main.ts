@@ -163,7 +163,7 @@ const statsSource: StatsSource = {
 
 const handlers = {
 	board: render,
-	command: (name: string, options: Record<string, string>, id: string): Embed =>
+	command: (name: string, options: Record<string, string>, id: string) =>
 		runCommand(name, options, id, statsSource, new Date())
 };
 

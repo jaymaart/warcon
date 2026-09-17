@@ -32,8 +32,9 @@ Warfrogs R2 bucket; the URLs are in `site/index.html`.
 - `/link player:<SteamID64 | steamcommunity.com/profiles/… | exact in-game name>` ties the
   caller's Discord account to a player. Custom `/id/` profile URLs are not resolvable without a
   Steam API key, so the bot asks for the ID or name instead.
-- `/stats` replies privately with the linked player's kills, deaths, K/D, cash earned and place by
-  kills for today, this week, this month and all time.
+- `/stats` posts the linked player's kills, deaths, K/D, cash earned and place by
+  kills for today, this week, this month and all time, visible to the channel. /link, /unlink and
+  errors stay private.
 - `/unlink` removes the link.
 
 Linked players show as a mention next to their name on both leaderboards (no ping). Commands are

@@ -61,11 +61,13 @@ describe('runCommand', () => {
 	test('link, stats, unlink', () => {
 		const s = make();
 		const linked = runCommand('link', { player: 'Alpha' }, 'd1', s, now);
-		expect(linked.title).toBe('Linked');
-		expect(linked.description).toContain('**Alpha** (76561198000000001)');
+		expect(linked.ephemeral).toBe(true);
+		expect(linked.embed.title).toBe('Linked');
+		expect(linked.embed.description).toContain('**Alpha** (76561198000000001)');
 		expect(s.links.get('d1')).toBe('76561198000000001');
 
-		const stats = runCommand('stats', {}, 'd1', s, now);
+		const { embed: stats, ephemeral } = runCommand('stats', {}, 'd1', s, now);
+		expect(ephemeral).toBe(false);
 		expect(stats.title).toBe('Stats · Alpha');
 		expect(stats.fields?.map((f) => f.name)).toEqual([
 			'Today',
@@ -80,15 +82,17 @@ describe('runCommand', () => {
 			'40 kills · 4 deaths · K/D 10.00\n$1,500 earned · #1 by kills'
 		);
 
-		expect(runCommand('unlink', {}, 'd1', s, now).title).toBe('Unlinked');
-		expect(runCommand('unlink', {}, 'd1', s, now).title).toBe('Nothing to unlink');
+		expect(runCommand('unlink', {}, 'd1', s, now).embed.title).toBe('Unlinked');
+		expect(runCommand('unlink', {}, 'd1', s, now).embed.title).toBe('Nothing to unlink');
 	});
 
 	test('stats without a link and a bad link input', () => {
 		const s = make();
-		expect(runCommand('stats', {}, 'd2', s, now).title).toBe('Not linked yet');
-		expect(runCommand('link', { player: 'Nobody' }, 'd2', s, now).title).toBe('Not linked');
+		const missing = runCommand('stats', {}, 'd2', s, now);
+		expect(missing.embed.title).toBe('Not linked yet');
+		expect(missing.ephemeral).toBe(true);
+		expect(runCommand('link', { player: 'Nobody' }, 'd2', s, now).embed.title).toBe('Not linked');
 		expect(s.links.size).toBe(0);
-		expect(runCommand('bogus', {}, 'd2', s, now).title).toBe('Unknown command');
+		expect(runCommand('bogus', {}, 'd2', s, now).embed.title).toBe('Unknown command');
 	});
 });

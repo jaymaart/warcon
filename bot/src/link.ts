@@ -18,7 +18,7 @@ export const COMMANDS = [
 		]
 	},
 	{ name: 'unlink', description: 'Remove the link to your in-game player' },
-	{ name: 'stats', description: 'Your kills, deaths, K/D and cash earned, only visible to you' }
+	{ name: 'stats', description: 'Your kills, deaths, K/D and cash earned, posted in the channel' }
 ] as const;
 
 export type Resolved = { steamId: string } | { error: string };
@@ -72,7 +72,24 @@ const money = (n: number): string => `$${Math.round(n).toLocaleString('en-US')}`
 
 const COLORS = { ok: 0x8ce02a, error: 0xed4245, info: 0x99aab5 };
 
+export interface CommandReply {
+	embed: Embed;
+	/** true: only the caller sees it. A successful /stats is public; everything else is private. */
+	ephemeral: boolean;
+}
+
 export function runCommand(
+	name: string,
+	options: Record<string, string>,
+	discordId: string,
+	source: StatsSource,
+	now: Date
+): CommandReply {
+	const embed = commandEmbed(name, options, discordId, source, now);
+	return { embed, ephemeral: !(name === 'stats' && embed.title?.startsWith('Stats ·')) };
+}
+
+function commandEmbed(
 	name: string,
 	options: Record<string, string>,
 	discordId: string,
