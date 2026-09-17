@@ -27,9 +27,9 @@
 		/>
 		<meta
 			property="og:image"
-			content="https://pub-c37cfd0952cd4bf6a90c39e33846b902.r2.dev/warfrogs-emblem.png"
+			content="https://pub-c37cfd0952cd4bf6a90c39e33846b902.r2.dev/OpenAI%20Playground%202026-09-16%20at%2021.00.11.png"
 		/>
-		<meta name="twitter:card" content="summary" />
+		<meta name="twitter:card" content="summary_large_image" />
 		<meta name="theme-color" content="#0F1210" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -230,8 +230,25 @@
 		</style>
 	</head>
 	<body>
-		<section style="position: relative; border-bottom: 1px solid #2a311f; background: #0f1210">
-			<div style="position: relative; background: #0f1210">
+		<section
+			style="
+				position: relative;
+				border-bottom: 1px solid #2a311f;
+				background-color: #0f1210;
+				background-image:
+					linear-gradient(
+						180deg,
+						rgba(15, 18, 16, 0.35) 0%,
+						rgba(15, 18, 16, 0.2) 30%,
+						rgba(15, 18, 16, 0.75) 62%,
+						#0f1210 100%
+					),
+					url('https://pub-c37cfd0952cd4bf6a90c39e33846b902.r2.dev/OpenAI%20Playground%202026-09-16%20at%2021.00.11.png');
+				background-size: cover;
+				background-position: center 40%;
+			"
+		>
+			<div style="position: relative; min-height: clamp(260px, 42vw, 520px)">
 				<div
 					style="
 						position: relative;
@@ -366,48 +383,6 @@
 			</div>
 		</section>
 
-		<section style="padding: 44px 20px; background: #0f1210">
-			<div class="kicker">01 &mdash; Briefing</div>
-			<h2>What this server is</h2>
-			<div
-				style="
-					display: grid;
-					grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-					gap: 14px;
-				"
-			>
-				<div class="card">
-					<h3>The server</h3>
-					<p>
-						NAW #1 Warfrogs: 100 slots, no grey fog, always up. Kicks and bans go straight to the
-						Discord with the reason, so what happens on the server is public.
-					</p>
-				</div>
-				<div class="card">
-					<h3>How it plays</h3>
-					<p>
-						King of the Hill across Bakurani, Zestafona and Kavkazi. Three factions, Lonestar,
-						Valkyra and Manticore, race to the score cap. Kills and cash count toward the monthly
-						leaderboard below.
-					</p>
-				</div>
-				<div class="card">
-					<h3>The rules</h3>
-					<p>
-						No cheating, no team killing, no slurs. Admins remove you without a debate. Everything
-						else is fair game; play the objective and talk to your team.
-					</p>
-				</div>
-				<div class="card">
-					<h3>Getting in</h3>
-					<p>
-						Copy the server ID above, open WARDOGS and join by ID. The Discord has events, the live
-						leaderboards, /stats for your own numbers and the people you will be playing with.
-					</p>
-				</div>
-			</div>
-		</section>
-
 		<section
 			style="
 				padding: 44px 20px;
@@ -416,7 +391,7 @@
 				border-bottom: 1px solid #2a311f;
 			"
 		>
-			<div class="kicker">02 &mdash; Kill competition</div>
+			<div class="kicker">01 &mdash; Kill competition</div>
 			<h2 style="margin: 10px 0 6px">$100 kill competition</h2>
 			<p style="margin: 0 0 18px; max-width: 60ch; color: #bcc4ad">
 				Most kills on the server takes it. Standings update live below.
