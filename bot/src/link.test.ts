@@ -54,7 +54,8 @@ describe('runCommand', () => {
 			clearLink: (id) => links.delete(id),
 			playerName: (steamId) => (steamId === '76561198000000001' ? 'Alpha' : null),
 			byName: (name) => (name === 'Alpha' ? [{ steamId: '76561198000000001', name: 'Alpha' }] : []),
-			stats: (_steamId, since) => (since === null ? { ...stats, kills: 40, rank: 1 } : stats)
+			stats: (_steamId, sinces) =>
+				sinces.map((since) => (since === null ? { ...stats, kills: 40, rank: 1 } : stats))
 		};
 	};
 

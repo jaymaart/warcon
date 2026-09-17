@@ -4,6 +4,11 @@ import { Database } from 'bun:sqlite';
 import type { CashRow, Row } from './leaderboard';
 import type { StatDelta } from './tracker';
 
+/** Every counted row, raw or folded, with an ISO `at` a UTC-midnight period start compares against. */
+const ROWS = `(SELECT steam_id, at, kills, deaths, cash FROM stats
+               UNION ALL
+               SELECT steam_id, day || 'T00:00:00.000Z', kills, deaths, cash FROM daily)`;
+
 export class Store {
 	private readonly db: Database;
 
@@ -26,6 +31,15 @@ export class Store {
 				cash INTEGER NOT NULL DEFAULT 0
 			);
 			CREATE INDEX IF NOT EXISTS stats_at ON stats (at);
+			CREATE INDEX IF NOT EXISTS stats_player ON stats (steam_id, at);
+			CREATE TABLE IF NOT EXISTS daily (
+				day TEXT NOT NULL,
+				steam_id TEXT NOT NULL,
+				kills INTEGER NOT NULL,
+				deaths INTEGER NOT NULL,
+				cash INTEGER NOT NULL,
+				PRIMARY KEY (day, steam_id)
+			);
 			CREATE TABLE IF NOT EXISTS state (
 				key TEXT PRIMARY KEY,
 				value TEXT NOT NULL
@@ -85,7 +99,7 @@ export class Store {
 			.query<CashRow, [string | null, string | null, number]>(
 				`SELECT s.steam_id AS steamId, COALESCE(p.name, s.steam_id) AS name, SUM(s.cash) AS cash,
 				        (SELECT l.discord_id FROM links l WHERE l.steam_id = s.steam_id LIMIT 1) AS discordId
-				 FROM stats s LEFT JOIN players p ON p.steam_id = s.steam_id
+				 FROM ${ROWS} s LEFT JOIN players p ON p.steam_id = s.steam_id
 				 WHERE ?1 IS NULL OR s.at >= ?2
 				 GROUP BY s.steam_id
 				 HAVING SUM(s.cash) > 0
@@ -106,6 +120,29 @@ export class Store {
 		})();
 	}
 
+	/**
+	 * Folds every stats row from before today (UTC) into `daily`, one row per player per day, and
+	 * deletes the originals. Period starts are UTC midnights, so nothing a query can ask for is
+	 * lost, and the raw table only ever holds the current day. Returns how many rows were folded.
+	 */
+	compact(now = new Date()): number {
+		const today = now.toISOString().slice(0, 10);
+		return this.db.transaction(() => {
+			this.db
+				.query<void, [string]>(
+					`INSERT INTO daily (day, steam_id, kills, deaths, cash)
+					 SELECT substr(at, 1, 10), steam_id, SUM(kills), SUM(deaths), SUM(cash)
+					 FROM stats WHERE at < ? GROUP BY substr(at, 1, 10), steam_id
+					 ON CONFLICT (day, steam_id) DO UPDATE SET
+					   kills = daily.kills + excluded.kills,
+					   deaths = daily.deaths + excluded.deaths,
+					   cash = daily.cash + excluded.cash`
+				)
+				.run(today);
+			return this.db.query<void, [string]>('DELETE FROM stats WHERE at < ?').run(today).changes;
+		})();
+	}
+
 	/** Top players by kills since `since` (all time when null); ties break by fewer deaths. */
 	leaderboard(since: Date | null, limit: number): Row[] {
 		return this.db
@@ -113,7 +150,7 @@ export class Store {
 				`SELECT s.steam_id AS steamId, COALESCE(p.name, s.steam_id) AS name,
 				        SUM(s.kills) AS kills, SUM(s.deaths) AS deaths,
 				        (SELECT l.discord_id FROM links l WHERE l.steam_id = s.steam_id LIMIT 1) AS discordId
-				 FROM stats s LEFT JOIN players p ON p.steam_id = s.steam_id
+				 FROM ${ROWS} s LEFT JOIN players p ON p.steam_id = s.steam_id
 				 WHERE ?1 IS NULL OR s.at >= ?2
 				 GROUP BY s.steam_id
 				 HAVING SUM(s.kills) > 0
@@ -176,31 +213,39 @@ export class Store {
 			.all(name);
 	}
 
-	/** One player's totals since `since` and their place by kills among players with kills. */
+	/**
+	 * One player's totals for several periods in one pass over the table, each with the player's
+	 * place by kills among players who have kills in that period (null without kills). `sinces`
+	 * holds the start of each period, null for all time.
+	 */
 	playerStats(
 		steamId: string,
-		since: Date | null
-	): { kills: number; deaths: number; cash: number; rank: number | null } {
-		const iso = since ? since.toISOString() : null;
-		const totals = this.db
-			.query<
-				{ kills: number; deaths: number; cash: number },
-				[string, string | null, string | null]
-			>(
-				`SELECT COALESCE(SUM(kills), 0) AS kills, COALESCE(SUM(deaths), 0) AS deaths,
-				        COALESCE(SUM(cash), 0) AS cash
-				 FROM stats WHERE steam_id = ?1 AND (?2 IS NULL OR at >= ?3)`
+		sinces: (Date | null)[]
+	): { kills: number; deaths: number; cash: number; rank: number | null }[] {
+		if (!sinces.length) return [];
+		const bounds = sinces.map((d) => (d ? d.toISOString() : ''));
+		const cols = bounds
+			.map(
+				(_, i) =>
+					`SUM(CASE WHEN at >= ?${i + 1} THEN kills ELSE 0 END) AS k${i},
+					 SUM(CASE WHEN at >= ?${i + 1} THEN deaths ELSE 0 END) AS d${i},
+					 SUM(CASE WHEN at >= ?${i + 1} THEN cash ELSE 0 END) AS c${i}`
 			)
-			.get(steamId, iso, iso) ?? { kills: 0, deaths: 0, cash: 0 };
-		if (totals.kills === 0) return { ...totals, rank: null };
-		const above = this.db
-			.query<{ n: number }, [string | null, string | null, number]>(
-				`SELECT COUNT(*) AS n FROM (
-				   SELECT steam_id FROM stats WHERE ?1 IS NULL OR at >= ?2
-				   GROUP BY steam_id HAVING SUM(kills) > ?3)`
+			.join(',\n');
+		const rows = this.db
+			.query<Record<string, string | number>, string[]>(
+				`SELECT steam_id, ${cols} FROM ${ROWS} GROUP BY steam_id`
 			)
-			.get(iso, iso, totals.kills);
-		return { ...totals, rank: (above?.n ?? 0) + 1 };
+			.all(...bounds);
+		const mine = rows.find((r) => r.steam_id === steamId);
+		return bounds.map((_, i) => {
+			const kills = Number(mine?.[`k${i}`] ?? 0);
+			const deaths = Number(mine?.[`d${i}`] ?? 0);
+			const cash = Number(mine?.[`c${i}`] ?? 0);
+			if (kills === 0) return { kills, deaths, cash, rank: null };
+			const above = rows.filter((r) => Number(r[`k${i}`]) > kills).length;
+			return { kills, deaths, cash, rank: above + 1 };
+		});
 	}
 
 	player(steamId: string): { name: string; faction: string | null } | null {

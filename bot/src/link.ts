@@ -63,8 +63,12 @@ export interface StatsSource {
 	clearLink: (discordId: string) => boolean;
 	playerName: (steamId: string) => string | null;
 	byName: (name: string) => { steamId: string; name: string }[];
-	stats: (steamId: string, since: Date | null) => PeriodStats;
+	/** one entry per period start (null for all time), in order */
+	stats: (steamId: string, sinces: (Date | null)[]) => PeriodStats[];
 }
+
+/** Commands answered after a "thinking" acknowledgement, so a slow query never hits Discord's 3 s limit. */
+export const DEFERRED: Record<string, { ephemeral: boolean }> = { stats: { ephemeral: false } };
 
 const kd = (kills: number, deaths: number): string =>
 	(deaths === 0 ? kills : kills / deaths).toFixed(2);
@@ -130,8 +134,12 @@ function commandEmbed(
 					color: COLORS.error
 				};
 			const name = source.playerName(steamId) ?? steamId;
-			const fields = PERIODS.map((p: Period) => {
-				const s = source.stats(steamId, periodStart(p, now));
+			const all = source.stats(
+				steamId,
+				PERIODS.map((p) => periodStart(p, now))
+			);
+			const fields = PERIODS.map((p: Period, i) => {
+				const s = all[i] ?? { kills: 0, deaths: 0, cash: 0, rank: null };
 				const place = s.rank === null ? '' : ` · #${s.rank} by kills`;
 				return {
 					name: periodLabel(p),

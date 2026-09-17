@@ -135,7 +135,15 @@ export async function verifyInteraction(
 const EPHEMERAL = 64;
 
 export type InteractionResponse =
-	{ type: 1 } | { type: 4; data: { embeds: Embed[]; flags: number } };
+	| { type: 1 }
+	| { type: 4; data: { embeds: Embed[]; flags: number } }
+	| { type: 5; data: { flags: number } };
+
+/** What to send back now, and for a deferred command, the work to finish afterwards. */
+export interface Handled {
+	response: InteractionResponse;
+	followUp?: { token: string; run: () => Embed };
+}
 
 export interface InteractionHandlers {
 	/** a leaderboard period button */
@@ -146,27 +154,26 @@ export interface InteractionHandlers {
 		options: Record<string, string>,
 		discordId: string
 	) => { embed: Embed; ephemeral: boolean };
+	/** non-null: acknowledge first, then edit the reply in with the command's embed */
+	deferred: (name: string) => { ephemeral: boolean } | null;
 }
 
 /**
  * PING gets PONG; a leaderboard button gets an ephemeral reply with that period, leaving the
  * message itself unchanged. Anything else: null (400).
  */
-export function handleInteraction(
-	payload: unknown,
-	handlers: InteractionHandlers
-): InteractionResponse | null {
+export function handleInteraction(payload: unknown, handlers: InteractionHandlers): Handled | null {
 	if (payload === null || typeof payload !== 'object') return null;
 	const p = payload as {
 		type?: unknown;
+		token?: unknown;
 		data?: { custom_id?: unknown; name?: unknown; options?: unknown };
 		member?: { user?: { id?: unknown } };
 		user?: { id?: unknown };
 	};
-	if (p.type === 1) return { type: 1 };
-	const reply = (embed: Embed, ephemeral = true): InteractionResponse => ({
-		type: 4,
-		data: { embeds: [embed], flags: ephemeral ? EPHEMERAL : 0 }
+	if (p.type === 1) return { response: { type: 1 } };
+	const reply = (embed: Embed, ephemeral = true): Handled => ({
+		response: { type: 4, data: { embeds: [embed], flags: ephemeral ? EPHEMERAL : 0 } }
 	});
 	if (p.type === 3) {
 		const target = typeof p.data?.custom_id === 'string' ? parseBoard(p.data.custom_id) : null;
@@ -181,10 +188,35 @@ export function handleInteraction(
 			const r = o as { name?: unknown; value?: unknown };
 			if (typeof r.name === 'string' && typeof r.value === 'string') options[r.name] = r.value;
 		}
+		const deferred = handlers.deferred(name);
+		if (deferred && typeof p.token === 'string') {
+			const token = p.token;
+			return {
+				response: { type: 5, data: { flags: deferred.ephemeral ? EPHEMERAL : 0 } },
+				followUp: { token, run: () => handlers.command(name, options, id).embed }
+			};
+		}
 		const r = handlers.command(name, options, id);
 		return reply(r.embed, r.ephemeral);
 	}
 	return null;
+}
+
+/** Replaces a deferred reply with the finished embed (PATCH the original via the interaction webhook). */
+export async function editDeferredReply(
+	applicationId: string,
+	token: string,
+	embed: Embed,
+	apiBase = DISCORD_API
+): Promise<void> {
+	const res = await fetch(`${apiBase}/webhooks/${applicationId}/${token}/messages/@original`, {
+		method: 'PATCH',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({ embeds: [embed] }),
+		signal: AbortSignal.timeout(15_000)
+	});
+	if (!res.ok)
+		throw new DiscordError(`PATCH deferred reply: ${res.status} ${await res.text()}`, res.status);
 }
 
 /** Overwrites the application's global slash commands; returns how many Discord now has. */

@@ -35,20 +35,21 @@ describe('handleInteraction', () => {
 		command: (name: string, options: Record<string, string>, id: string) => ({
 			embed: { title: `${name} ${id} ${JSON.stringify(options)}` },
 			ephemeral: name !== 'stats'
-		})
+		}),
+		deferred: (name: string) => (name === 'stats' ? { ephemeral: false } : null)
 	};
 
 	test('answers a ping with a pong', () => {
-		expect(handleInteraction({ type: 1 }, handlers)).toEqual({ type: 1 });
+		expect(handleInteraction({ type: 1 }, handlers)).toEqual({ response: { type: 1 } });
 	});
 
 	test('a leaderboard button gets an ephemeral reply', () => {
 		expect(
 			handleInteraction({ type: 3, data: { custom_id: 'lb:weekly', component_type: 2 } }, handlers)
-		).toEqual({ type: 4, data: { embeds: [{ title: 'kills weekly' }], flags: 64 } });
+		).toEqual({ response: { type: 4, data: { embeds: [{ title: 'kills weekly' }], flags: 64 } } });
 		expect(
 			handleInteraction({ type: 3, data: { custom_id: 'cash:all', component_type: 2 } }, handlers)
-		).toEqual({ type: 4, data: { embeds: [{ title: 'cash all' }], flags: 64 } });
+		).toEqual({ response: { type: 4, data: { embeds: [{ title: 'cash all' }], flags: 64 } } });
 	});
 
 	test('a slash command reaches the command handler with its options and user', () => {
@@ -61,13 +62,20 @@ describe('handleInteraction', () => {
 				},
 				handlers
 			)
-		).toEqual({ type: 4, data: { embeds: [{ title: 'link 99 {"player":"Alpha"}' }], flags: 64 } });
+		).toEqual({
+			response: { type: 4, data: { embeds: [{ title: 'link 99 {"player":"Alpha"}' }], flags: 64 } }
+		});
+		const deferred = handleInteraction(
+			{ type: 2, token: 'tkn', data: { name: 'stats' }, user: { id: '5' } },
+			handlers
+		);
+		expect(deferred?.response).toEqual({ type: 5, data: { flags: 0 } });
+		expect(deferred?.followUp?.token).toBe('tkn');
+		expect(deferred?.followUp?.run()).toEqual({ title: 'stats 5 {}' });
+		// without an interaction token it cannot be deferred, so it answers directly
 		expect(
 			handleInteraction({ type: 2, data: { name: 'stats' }, user: { id: '5' } }, handlers)
-		).toEqual({
-			type: 4,
-			data: { embeds: [{ title: 'stats 5 {}' }], flags: 0 }
-		});
+		).toEqual({ response: { type: 4, data: { embeds: [{ title: 'stats 5 {}' }], flags: 0 } } });
 	});
 
 	test('anything else is refused', () => {

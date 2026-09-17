@@ -112,15 +112,17 @@ describe('Store', () => {
 			{ steamId: '3', name: 'Charlie', kills: 9, deaths: 0, cash: 0 },
 			{ steamId: '2', name: 'alpha', kills: 0, deaths: 1, cash: 10 }
 		]);
-		expect(store.playerStats('1', null)).toEqual({ kills: 5, deaths: 2, cash: 300, rank: 2 });
-		expect(store.playerStats('3', null)).toEqual({ kills: 9, deaths: 0, cash: 0, rank: 1 });
-		expect(store.playerStats('2', null)).toEqual({ kills: 0, deaths: 1, cash: 10, rank: null });
-		expect(store.playerStats('1', new Date('2026-09-17T00:00:00Z'))).toEqual({
-			kills: 0,
-			deaths: 0,
-			cash: 0,
-			rank: null
-		});
+		expect(store.playerStats('1', [null])).toEqual([{ kills: 5, deaths: 2, cash: 300, rank: 2 }]);
+		expect(store.playerStats('3', [null])).toEqual([{ kills: 9, deaths: 0, cash: 0, rank: 1 }]);
+		expect(store.playerStats('2', [null])).toEqual([{ kills: 0, deaths: 1, cash: 10, rank: null }]);
+		expect(store.playerStats('1', [new Date('2026-09-17T00:00:00Z'), null])).toEqual([
+			{ kills: 0, deaths: 0, cash: 0, rank: null },
+			{ kills: 5, deaths: 2, cash: 300, rank: 2 }
+		]);
+		expect(store.playerStats('nobody', [null])).toEqual([
+			{ kills: 0, deaths: 0, cash: 0, rank: null }
+		]);
+		expect(store.playerStats('1', [])).toEqual([]);
 		expect(store.leaderboard(null, 10)[1]).toEqual({
 			steamId: '1',
 			name: 'Alpha',
@@ -131,6 +133,51 @@ describe('Store', () => {
 		expect(store.clearLink('d1')).toBe(true);
 		expect(store.clearLink('d1')).toBe(false);
 		expect(store.link('d1')).toBeNull();
+		store.close();
+	});
+
+	test('compact folds past days and every query still sees them', () => {
+		const store = new Store(':memory:');
+		const old1 = new Date('2026-09-10T10:00:00Z');
+		const old2 = new Date('2026-09-10T20:00:00Z');
+		const yesterday = new Date('2026-09-15T23:59:00Z');
+		const today = new Date('2026-09-16T10:00:00Z');
+		store.touchPlayers(today, [{ steamId: '1', name: 'A' }]);
+		store.recordDeltas(old1, 'S', [{ steamId: '1', name: 'A', kills: 2, deaths: 1, cash: 100 }]);
+		store.recordDeltas(old2, 'S', [{ steamId: '1', name: 'A', kills: 3, deaths: 0, cash: 50 }]);
+		store.recordDeltas(yesterday, 'S', [{ steamId: '2', name: 'B', kills: 1, deaths: 4, cash: 0 }]);
+		store.recordDeltas(today, 'S', [{ steamId: '1', name: 'A', kills: 4, deaths: 2, cash: 10 }]);
+		const before = store.leaderboard(null, 10);
+		expect(store.compact(today)).toBe(3);
+		expect(store.compact(today)).toBe(0);
+		expect(store.leaderboard(null, 10)).toEqual(before);
+		expect(store.leaderboard(null, 10)[0]).toEqual({
+			steamId: '1',
+			name: 'A',
+			kills: 9,
+			deaths: 3,
+			discordId: null
+		});
+		expect(store.leaderboard(new Date('2026-09-16T00:00:00Z'), 10)).toEqual([
+			{ steamId: '1', name: 'A', kills: 4, deaths: 2, discordId: null }
+		]);
+		expect(store.leaderboard(new Date('2026-09-15T00:00:00Z'), 10).map((r) => r.steamId)).toEqual([
+			'1',
+			'2'
+		]);
+		expect(store.cashEarned(null, 10)).toEqual([
+			{ steamId: '1', name: 'A', cash: 160, discordId: null }
+		]);
+		expect(store.playerStats('1', [new Date('2026-09-16T00:00:00Z'), null])).toEqual([
+			{ kills: 4, deaths: 2, cash: 10, rank: 1 },
+			{ kills: 9, deaths: 3, cash: 160, rank: 1 }
+		]);
+		// a second day's rows fold into the same player row without double counting
+		store.recordDeltas(new Date('2026-09-16T12:00:00Z'), 'S', [
+			{ steamId: '1', name: 'A', kills: 1, deaths: 0, cash: 0 }
+		]);
+		expect(store.compact(new Date('2026-09-17T01:00:00Z'))).toBe(2);
+		expect(store.leaderboard(null, 10)[0]?.kills).toBe(10);
 		store.close();
 	});
 

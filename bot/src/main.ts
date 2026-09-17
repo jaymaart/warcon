@@ -8,12 +8,13 @@ import {
 	applicationIdFromToken,
 	Discord,
 	DiscordError,
+	editDeferredReply,
 	handleInteraction,
 	registerCommands,
 	verifyInteraction,
 	type Embed
 } from './discord';
-import { COMMANDS, runCommand, type StatsSource } from './link';
+import { COMMANDS, DEFERRED, runCommand, type StatsSource } from './link';
 import { loadConfig } from './env';
 import { matchEndEmbed, moderationEmbed } from './events';
 import { GameClient, type GameServer, type Player, type Status } from './game';
@@ -158,17 +159,31 @@ const statsSource: StatsSource = {
 	clearLink: (id) => store.clearLink(id),
 	playerName: (steamId) => store.player(steamId)?.name ?? null,
 	byName: (name) => store.playersNamed(name),
-	stats: (steamId, since) => store.playerStats(steamId, since)
+	stats: (steamId, sinces) => store.playerStats(steamId, sinces)
 };
 
 const handlers = {
 	board: render,
 	command: (name: string, options: Record<string, string>, id: string) =>
-		runCommand(name, options, id, statsSource, new Date())
+		runCommand(name, options, id, statsSource, new Date()),
+	deferred: (name: string) => DEFERRED[name] ?? null
 };
 
+const applicationId = cfg.applicationId ?? applicationIdFromToken(cfg.token);
+
+/** Runs a deferred command after the acknowledgement went out, then edits the reply in. */
+async function finishDeferred(token: string, run: () => Embed): Promise<void> {
+	if (!applicationId) return;
+	const started = performance.now();
+	try {
+		await editDeferredReply(applicationId, token, run(), cfg.apiBase);
+		log(`deferred reply sent in ${Math.round(performance.now() - started)} ms`);
+	} catch (err) {
+		log(`deferred reply failed: ${err instanceof Error ? err.message : String(err)}`);
+	}
+}
+
 async function publishCommands(): Promise<void> {
-	const applicationId = cfg.applicationId ?? applicationIdFromToken(cfg.token);
 	if (!applicationId) {
 		log('slash commands not registered: set DISCORD_APPLICATION_ID');
 		return;
@@ -307,11 +322,16 @@ const server = Bun.serve({
 				log('interaction rejected: bad json');
 				return new Response('bad json', { status: 400 });
 			}
-			const answer = handleInteraction(payload, handlers);
+			const handled = handleInteraction(payload, handlers);
 			log(
-				`interaction ${summarize(payload)}: ${answer ? `answered type ${answer.type}` : 'unknown'}`
+				`interaction ${summarize(payload)}: ${handled ? `answered type ${handled.response.type}` : 'unknown'}`
 			);
-			return answer ? Response.json(answer) : new Response('unknown interaction', { status: 400 });
+			if (!handled) return new Response('unknown interaction', { status: 400 });
+			if (handled.followUp) {
+				const { token, run } = handled.followUp;
+				setTimeout(() => void finishDeferred(token, run), 0);
+			}
+			return Response.json(handled.response);
 		}
 		return new Response('not found', { status: 404 });
 	}
@@ -324,6 +344,14 @@ void Bun.sleep(cfg.leaderboardLiveSeconds * 1000).then(() =>
 	loop(refreshLeaderboardIfChanged, cfg.leaderboardLiveSeconds * 1000, 'leaderboard live')
 );
 void loop(refreshDiscordCounts, 600_000, 'discord counts');
+void loop(
+	async () => {
+		const folded = store.compact();
+		if (folded) log(`folded ${folded} stat rows from past days`);
+	},
+	3_600_000,
+	'compact'
+);
 void publishCommands();
 
 const shutdown = (): void => {

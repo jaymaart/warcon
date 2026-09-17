@@ -16,7 +16,9 @@ HTTP API the Warcon panel uses) and posts to a channel:
   be built for those. Kills are counted from the per-player totals the server reports;
   the API exposes no weapon or vehicle detail, so there is no per-weapon split.
 
-Bun, SQLite on a volume, no other dependencies. Periods are UTC, weeks start on Monday.
+Bun, SQLite on a volume, no other dependencies. Periods are UTC, weeks start on Monday. Kill,
+death and cash gains are recorded per poll; finished days are folded into one row per player per
+day every hour, so the database stays small however long the bot runs.
 
 ## Landing page
 
