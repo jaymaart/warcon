@@ -24,8 +24,8 @@ The bot also serves a landing page at `/` (source in `site/`): live player count
 average ping, 30-day uptime (share of reachable polls), the monthly top 10 by kills, the server
 join code with a copy button, and the Discord's member counts from its public invite. The page
 polls `GET /api/site` every 30 seconds; that document is public and read-only. Put a custom
-domain on the Railway service to host it at your own address. Replace `site/assets/*.png` to
-change the artwork.
+domain on the Railway service to host it at your own address. Artwork is hotlinked from the
+Warfrogs R2 bucket; the URLs are in `site/index.html`.
 
 ## Slash commands
 

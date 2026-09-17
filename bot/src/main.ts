@@ -235,7 +235,7 @@ async function loop(fn: () => Promise<void>, everyMs: number, what: string): Pro
 	}
 }
 
-// ---- The landing page: static files from ./site and one JSON document it polls. -------------
+// ---- The landing page: ./site/index.html and one JSON document it polls. -------------------
 const SITE_DIR = `${import.meta.dir}/../site`;
 let discordCounts: DiscordCounts | null = null;
 
@@ -263,13 +263,9 @@ function siteDocument(): ReturnType<typeof sitePayload> {
 	);
 }
 
-function siteFile(pathname: string): Response {
-	const name = pathname === '/' ? 'index.html' : pathname.replace(/^\/assets\//, 'assets/');
-	if (name.includes('..') || !/^(index\.html|assets\/[\w.-]+)$/.test(name))
-		return new Response('not found', { status: 404 });
-	const file = Bun.file(`${SITE_DIR}/${name}`);
-	return new Response(file, {
-		headers: { 'cache-control': name === 'index.html' ? 'no-cache' : 'public, max-age=86400' }
+function sitePage(): Response {
+	return new Response(Bun.file(`${SITE_DIR}/index.html`), {
+		headers: { 'cache-control': 'no-cache' }
 	});
 }
 
@@ -278,8 +274,7 @@ const server = Bun.serve({
 	hostname: '0.0.0.0',
 	async fetch(req) {
 		const url = new URL(req.url);
-		if (req.method === 'GET' && (url.pathname === '/' || url.pathname.startsWith('/assets/')))
-			return siteFile(url.pathname);
+		if (req.method === 'GET' && url.pathname === '/') return sitePage();
 		if (req.method === 'GET' && url.pathname === '/api/site')
 			return Response.json(siteDocument(), { headers: { 'cache-control': 'no-store' } });
 		if (url.pathname === '/health') {
